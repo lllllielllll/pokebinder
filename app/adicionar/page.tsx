@@ -231,7 +231,7 @@ export default function AdicionarCartaPage() {
 
     const brazilianPrice =
   language === 'Português'
-    ? await fetchBrazilianPrice(selectedCard)
+    ? null
     : null
 
     const { error } = await supabase
