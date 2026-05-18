@@ -92,29 +92,6 @@ export default function AdicionarCartaPage() {
   }
 
   function getAutoPrice(card: ApiCard | null) {
-  async function fetchBrazilianPrice(
-  card: ApiCard
-) {
-  try {
-    const searchName = encodeURIComponent(
-      `${card.name} ${card.localId || ''}`
-    )
-
-    const ligaUrl = `https://www.ligapokemon.com.br/?view=cards/search&card=${searchName}`
-
-    return {
-      price: null,
-      provider: 'LigaPokemon',
-      url: ligaUrl,
-    }
-  } catch {
-    return {
-      price: null,
-      provider: null,
-      url: null,
-    }
-  }
-}
     return (
       card?.cardmarket?.prices?.averageSellPrice ||
       null
@@ -262,14 +239,11 @@ export default function AdicionarCartaPage() {
         auto_price:
           getAutoPrice(selectedCard),
         
-        auto_price_brl:
-          brazilianPrice?.price || null,
+        auto_price_brl: null,
 
-        price_provider:
-          brazilianPrice?.provider || null,
+        price_provider: null,
 
-        price_url:
-          brazilianPrice?.url || null,
+        price_url: null,
 
         price_updated_at:
           new Date().toISOString(),
@@ -475,7 +449,7 @@ export default function AdicionarCartaPage() {
                 >
                   {getImageUrl(card) && (
                     <img
-                      src={getImageUrl(card)}
+                      src={getImageUrl(card) || ''}
                       alt={card.name}
                       className="mb-4 w-32 rounded-xl"
                     />
@@ -516,7 +490,7 @@ export default function AdicionarCartaPage() {
               <div className="mt-4 flex gap-5">
                 {getImageUrl(selectedCard) && (
                   <img
-                    src={getImageUrl(selectedCard)}
+                    src={getImageUrl(selectedCard) || ''}
                     alt={selectedCard.name}
                     className="w-40 rounded-xl"
                   />
