@@ -1,5 +1,7 @@
 'use client'
 
+import ProfileMenu from '@/components/ProfileMenu'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -19,6 +21,37 @@ type Card = {
   api_card_id?: string | null
   binder_page?: number | null
   binder_slot?: number | null
+  }
+
+function getLanguageFlag(language: string) {
+  switch (language) {
+    case 'Português':
+      return '🇧🇷'
+    case 'Inglês':
+      return '🇺🇸'
+    case 'Japonês':
+      return '🇯🇵'
+    case 'Alemão':
+      return '🇩🇪'
+    case 'Francês':
+      return '🇫🇷'
+    case 'Italiano':
+      return '🇮🇹'
+    case 'Espanhol':
+      return '🇪🇸'
+    case 'Coreano':
+      return '🇰🇷'
+    case 'Chinês Simplificado':
+      return '🇨🇳'
+    case 'Chinês Tradicional':
+      return '🇹🇼'
+    case 'Tailandês':
+      return '🇹🇭'
+    case 'Indonésio':
+      return '🇮🇩'
+    default:
+      return '🌍'
+  }
 }
 
 export default function ColecaoPage() {
@@ -51,9 +84,18 @@ export default function ColecaoPage() {
 
   useEffect(() => {
     async function fetchCards() {
-      const { data } = await supabase
-        .from('cards')
-        .select('*')
+    
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return
+
+const { data, error } = await supabase
+  .from('cards')
+  .select('*')
+  .eq('user_id', user.id)
+  
         .order('created_at', { ascending: false })
 
       setCards(data || [])
@@ -404,6 +446,8 @@ export default function ColecaoPage() {
 
   return (
     <main className="min-h-screen bg-slate-950 p-8 text-white">
+      <ProfileMenu />
+
       <div className="mx-auto max-w-7xl">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -483,12 +527,12 @@ export default function ColecaoPage() {
               Atualizar preços
             </button>
 
-            <a
+            <Link
               href="/adicionar"
               className="rounded-full bg-yellow-400 px-6 py-3 font-semibold text-slate-950 hover:bg-yellow-300"
             >
               Adicionar carta
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -631,14 +675,20 @@ export default function ColecaoPage() {
                     setSelectedCard(card)
                     setIsEditing(false)
                   }}
-                  className="cursor-pointer rounded-3xl border border-slate-800 bg-slate-900/70 p-5 shadow-xl transition hover:scale-[1.02] hover:border-yellow-400"
+                  className="group relative cursor-pointer rounded-3xl border border-slate-800 bg-slate-900/70 p-5 shadow-xl transition hover:scale-[1.02] hover:border-yellow-400"
                 >
                   {getCollectionImageUrl(card.image_url) ? (
-                    <img
-                      src={getCollectionImageUrl(card.image_url) || ''}
-                      alt={card.name}
-                      className="mx-auto mb-5 w-full max-w-[240px] rounded-2xl"
-                    />
+                    <>
+                      <div className="absolute right-3 top-3 z-10 rounded-full bg-slate-950/80 px-2 py-1 text-sm shadow-lg backdrop-blur">
+                        {getLanguageFlag(card.language || '')}
+                      </div>
+
+                      <img
+                        src={getCollectionImageUrl(card.image_url) || ''}
+                        alt={card.name}
+                        className="mx-auto mb-5 w-full max-w-[240px] rounded-2xl"
+                      />
+                    </>
                   ) : (
                     <div className="mb-5 flex h-80 items-center justify-center rounded-2xl bg-slate-800 text-slate-500">
                       Sem imagem
