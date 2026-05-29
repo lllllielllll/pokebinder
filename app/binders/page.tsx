@@ -16,26 +16,31 @@ export default function BindersPage() {
   const [binders, setBinders] = useState<Binder[]>([])
 
   useEffect(() => {
-    async function loadBinders() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+  async function loadBinders() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-      if (!user) {
-        window.location.href = '/login'
-        return
-      }
+    console.log('USER LOGADO:', user?.id)
 
-      const { data } = await supabase
-        .from('binders')
-        .select('*')
-        .eq('user_id', user.id)
-
-      setBinders(data || [])
+    if (!user) {
+      window.location.href = '/login'
+      return
     }
 
-    loadBinders()
-  }, [])
+    const { data, error } = await supabase
+      .from('binders')
+      .select('*')
+      .eq('user_id', user.id)
+
+    console.log('ERROR:', error)
+    console.log('DATA:', data)
+
+    setBinders(data || [])
+  }
+
+  loadBinders()
+}, [])
 
   return (
     <main className="min-h-screen bg-slate-950 p-8 text-white">
