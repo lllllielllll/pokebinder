@@ -13,8 +13,7 @@ type Binder = {
 }
 
 export default function BindersPage() {
-  const [binders, setBinders] = useState<Binder[]>([])
-  const [showCreateForm, setShowCreateForm] = useState(false)
+const [binders, setBinders] = useState<Binder[]>([])
 
 const [showCreateForm, setShowCreateForm] = useState(false)
 
