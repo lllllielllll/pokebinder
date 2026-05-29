@@ -2,8 +2,8 @@
 
 import ProfileMenu from '@/components/ProfileMenu'
 import Link from 'next/link'
-import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useEffect, useState } from 'react'
 
 type ApiCard = {
   id: string
@@ -30,6 +30,22 @@ type ApiCard = {
 }
 
 export default function AdicionarCartaPage() {
+ 
+   useEffect(() => {
+  async function checkUser() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      window.location.href = '/login'
+    }
+  }
+
+  checkUser()
+}, [])
+
+  const [manualImageUrl, setManualImageUrl] = useState('')
   const [name, setName] = useState('')
   const [setFilter, setSetFilter] = useState('')
   const [numberFilter, setNumberFilter] = useState('')
@@ -38,6 +54,7 @@ export default function AdicionarCartaPage() {
   const [language, setLanguage] = useState('Português')
   const [condition, setCondition] = useState('NM')
   const [quantity, setQuantity] = useState(1)
+  const [manualPriceBrl, setManualPriceBrl] = useState('')
   const [variant, setVariant] = useState('Todas')
 
   const [message, setMessage] = useState('')
@@ -126,33 +143,86 @@ export default function AdicionarCartaPage() {
   return data.data || []
 }
 
-  async function searchTcgdexFallback() {
-    const languageCode = getLanguageCode(language)
+  async function findApproximateImage(card: ApiCard) {
+  const cardNumber = String(card.number || card.localId || '')
+    .replace(/^0+/, '')
+    .toLowerCase()
 
+  if (!card.name || !cardNumber) return null
+
+  try {
     const response = await fetch(
-      `https://api.tcgdex.net/v2/${languageCode}/cards`
+      `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(
+        card.name
+      )}*&pageSize=250`
     )
 
-    const allCards = await response.json()
+    const data = await response.json()
+    const cards = data.data || []
 
-    const matchingCards = allCards
-      .filter((card: ApiCard) =>
-        card.name?.toLowerCase().includes(name.toLowerCase())
-      )
-      .slice(0, 40)
+    const match = cards.find((apiCard: ApiCard) => {
+      const apiNumber = String(apiCard.number || apiCard.localId || '')
+        .replace(/^0+/, '')
+        .toLowerCase()
 
-    const detailedCards = await Promise.all(
-      matchingCards.map(async (card: ApiCard) => {
-        const detailResponse = await fetch(
-          `https://api.tcgdex.net/v2/${languageCode}/cards/${card.id}`
-        )
+      return apiNumber === cardNumber && apiCard.images?.large
+    })
 
-        return await detailResponse.json()
-      })
-    )
-
-    return detailedCards
+    return match?.images?.large || cards[0]?.images?.large || null
+  } catch {
+    return null
   }
+}
+
+async function searchTcgdexFallback() {
+  const languageCode = getLanguageCode(language)
+
+  const response = await fetch(
+  `https://api.tcgdex.net/v2/en/cards`
+)
+
+  const allCards = await response.json()
+
+  const matchingCards = allCards
+    .filter((card: ApiCard) =>
+      card.name?.toLowerCase().includes(name.toLowerCase())
+    )
+    .slice(0, 40)
+
+  const detailedCards = await Promise.all(
+    matchingCards.map(async (card: ApiCard) => {
+      const detailResponse = await fetch(
+        `https://api.tcgdex.net/v2/${languageCode}/cards/${card.id}`
+      )
+
+      const detail = await detailResponse.json()
+
+      if (detail.image) return detail
+
+const approximateImage = await findApproximateImage(detail)
+
+return {
+  ...detail,
+  image: approximateImage || detail.image,
+}
+
+      const englishResponse = await fetch(
+        `https://api.tcgdex.net/v2/en/cards/${card.id}`
+      )
+
+      if (!englishResponse.ok) return detail
+
+      const englishDetail = await englishResponse.json()
+
+      return {
+        ...detail,
+        image: englishDetail.image || detail.image,
+      }
+    })
+  )
+
+  return detailedCards
+}
 
   async function searchCard() {
     if (!name.trim()) {
@@ -211,7 +281,11 @@ let cards: ApiCard[] = uniqueCards
             .replace(/^0+/, '')
             .toLowerCase()
 
-          return apiNumber === cleanNumber
+          return (
+            apiNumber === cleanNumber ||
+            apiNumber.includes(cleanNumber) ||
+            cleanNumber.includes(apiNumber)
+          )
         })
       }
 
@@ -249,6 +323,16 @@ let cards: ApiCard[] = uniqueCards
     setLoading(true)
     setMessage('')
 
+    const {
+  data: { user },
+} = await supabase.auth.getUser()
+
+if (!user) {
+  setMessage('Você precisa estar logado para salvar cartas.')
+  setLoading(false)
+  return
+}
+
     const { error } = await supabase
       .from('cards')
       .insert({
@@ -258,7 +342,7 @@ let cards: ApiCard[] = uniqueCards
         quantity,
         variant,
 
-        image_url: getImageUrl(selectedCard),
+        image_url: manualImageUrl || getImageUrl(selectedCard),
 
         set_name: selectedCard.set?.name || null,
 
@@ -271,10 +355,13 @@ let cards: ApiCard[] = uniqueCards
 
         auto_price: getAutoPrice(selectedCard),
 
-        auto_price_brl: null,
+        auto_price_brl: manualPriceBrl
+          ? Number(manualPriceBrl)
+          : null,
         price_provider: null,
         price_url: null,
         price_updated_at: null,
+        user_id: user.id,
 
         api_card_id: selectedCard.images ? selectedCard.id : null,
 
@@ -350,6 +437,20 @@ let cards: ApiCard[] = uniqueCards
               className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
             />
           </div>
+
+<div>
+  <label className="mb-2 block text-sm">
+    URL da imagem manual
+  </label>
+
+  <input
+    type="text"
+    value={manualImageUrl}
+    onChange={(event) => setManualImageUrl(event.target.value)}
+    placeholder="Cole aqui a imagem da carta se a API não encontrar"
+    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+  />
+</div>
 
           <div>
             <label className="mb-2 block text-sm">
@@ -450,6 +551,23 @@ let cards: ApiCard[] = uniqueCards
             />
           </div>
 
+          <div>   
+            <label className="mb-2 block text-sm">
+              Valor manual (R$)
+            </label>
+
+            <input
+              type="number"
+              step="0.01"
+              value={manualPriceBrl}
+              onChange={(event) =>
+                setManualPriceBrl(event.target.value)
+              }
+              placeholder="Ex: 149.90"
+              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+            />
+          </div>
+
           <div className="flex gap-4">
             <button
               type="button"
@@ -486,7 +604,7 @@ let cards: ApiCard[] = uniqueCards
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {results.map((card) => (
                 <button
-                  key={card.id}
+                  key={`${card.id}-${card.set?.id || card.set?.name || 'set'}-${card.number || card.localId || 'num'}`}
                   type="button"
                   onClick={() => {
                     setSelectedCard(card)

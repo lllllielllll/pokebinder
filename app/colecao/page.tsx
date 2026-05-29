@@ -89,7 +89,10 @@ export default function ColecaoPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) return
+  if (!user) {
+  window.location.href = '/login'
+  return
+}
 
 const { data, error } = await supabase
   .from('cards')
