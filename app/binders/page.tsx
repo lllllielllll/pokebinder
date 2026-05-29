@@ -23,6 +23,8 @@ export default function BindersPage() {
 
     console.log('USER LOGADO:', user?.id)
 
+    alert(`USER LOGADO: ${user?.id}`)
+
     if (!user) {
       window.location.href = '/login'
       return
