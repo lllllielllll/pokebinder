@@ -21,10 +21,6 @@ export default function BindersPage() {
       data: { user },
     } = await supabase.auth.getUser()
 
-    console.log('USER LOGADO:', user?.id)
-
-    alert(`USER LOGADO: ${user?.id}`)
-
     if (!user) {
       window.location.href = '/login'
       return
@@ -34,9 +30,6 @@ export default function BindersPage() {
       .from('binders')
       .select('*')
       .eq('user_id', user.id)
-
-    console.log('ERROR:', error)
-    console.log('DATA:', data)
 
     setBinders(data || [])
   }
