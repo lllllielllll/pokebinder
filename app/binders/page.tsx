@@ -54,6 +54,38 @@ const [primaryColor, setPrimaryColor] =
   loadBinders()
 }, [])
 
+async function createBinder() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    window.location.href = '/login'
+    return
+  }
+
+  const { data, error } = await supabase
+    .from('binders')
+    .insert({
+      user_id: user.id,
+      name: binderName,
+      rows_count: rowsCount,
+      columns_count: columnsCount,
+      total_pages: totalPages,
+      primary_color: primaryColor,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    alert(error.message)
+    return
+  }
+
+  setBinders([data, ...binders])
+  setShowCreateForm(false)
+}
+
   return (
     <main className="min-h-screen bg-slate-950 p-8 text-white">
       <div className="mb-8 flex items-center justify-between">
@@ -125,10 +157,12 @@ const [primaryColor, setPrimaryColor] =
       />
 
       <button
-        className="rounded-full bg-green-500 px-6 py-3 font-semibold"
-      >
-        Criar Binder
-      </button>
+  type="button"
+  onClick={createBinder}
+  className="rounded-full bg-green-500 px-6 py-3 font-semibold"
+>
+  Criar Binder
+</button>
 
     </div>
   </div>
