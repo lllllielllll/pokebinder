@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import Link from 'next/link'
 
 type Binder = {
   id: string
@@ -170,10 +171,11 @@ async function createBinder() {
 
 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {binders.map((binder) => (
-          <div
+          <Link
+            href={`/binders/${binder.id}`}
             key={binder.id}
-            className="rounded-3xl border border-slate-800 bg-slate-900 p-6"
-          >
+            className="block rounded-3xl border border-slate-800 bg-slate-900 p-6 transition hover:border-yellow-400"
+            >
             <h2 className="text-2xl font-bold">
               {binder.name}
             </h2>
@@ -192,7 +194,7 @@ async function createBinder() {
                 binder.columns_count *
                 binder.total_pages}
             </p>
-          </div>
+          </Link>
         ))}
       </div>
     </main>
