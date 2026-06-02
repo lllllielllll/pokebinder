@@ -5,6 +5,11 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 
+type Binder = {
+  id: string
+  name: string
+}
+
 type ApiCard = {
   id: string
   name: string
@@ -39,12 +44,28 @@ export default function AdicionarCartaPage() {
 
     if (!user) {
       window.location.href = '/login'
+      return
+    }
+
+    const { data } = await supabase
+      .from('binders')
+      .select('id, name')
+      .eq('user_id', user.id)
+
+    setBinders(data || [])
+
+    if (data && data.length > 0) {
+      setSelectedBinderId(data[0].id)
     }
   }
 
   checkUser()
 }, [])
 
+  const [binders, setBinders] = useState<Binder[]>([])
+  const [selectedBinderId, setSelectedBinderId] = useState('')
+  const [binderPage, setBinderPage] = useState(1)
+  const [binderSlot, setBinderSlot] = useState(1)
   const [manualImageUrl, setManualImageUrl] = useState('')
   const [name, setName] = useState('')
   const [setFilter, setSetFilter] = useState('')
@@ -363,6 +384,10 @@ if (!user) {
         price_updated_at: null,
         user_id: user.id,
 
+        binder_id: selectedBinderId || null,
+        binder_page: selectedBinderId ? binderPage : null,
+        binder_slot: selectedBinderId ? binderSlot : null,
+
         api_card_id: selectedCard.images ? selectedCard.id : null,
 
         tcgdex_id: selectedCard.images ? null : selectedCard.id || null,
@@ -567,6 +592,60 @@ if (!user) {
               className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
             />
           </div>
+
+          <div>
+  <label className="mb-2 block text-sm">
+    Binder
+  </label>
+
+  <select
+    value={selectedBinderId}
+    onChange={(event) =>
+      setSelectedBinderId(event.target.value)
+    }
+    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+  >
+    <option value="">Sem binder</option>
+
+    {binders.map((binder) => (
+      <option key={binder.id} value={binder.id}>
+        {binder.name}
+      </option>
+    ))}
+  </select>
+</div>
+
+<div>
+  <label className="mb-2 block text-sm">
+    Página do binder
+  </label>
+
+  <input
+    type="number"
+    min="1"
+    value={binderPage}
+    onChange={(event) =>
+      setBinderPage(Number(event.target.value))
+    }
+    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+  />
+</div>
+
+<div>
+  <label className="mb-2 block text-sm">
+    Slot do binder
+  </label>
+
+  <input
+    type="number"
+    min="1"
+    value={binderSlot}
+    onChange={(event) =>
+      setBinderSlot(Number(event.target.value))
+    }
+    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+  />
+</div>
 
           <div className="flex gap-4">
             <button

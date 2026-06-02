@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { useParams } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 
 type Binder = {
   id: string
@@ -13,12 +13,21 @@ type Binder = {
   total_pages: number
 }
 
+type Card = {
+  id: string
+  name: string
+  image_url?: string | null
+  binder_page?: number | null
+  binder_slot?: number | null
+}
+
 export default function BinderDetailPage() {
   const params = useParams()
   const binderId = params.id as string
 
   const [binder, setBinder] = useState<Binder | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
+  const [cards, setCards] = useState<Card[]>([])
 
   useEffect(() => {
     async function loadBinder() {
@@ -44,10 +53,18 @@ export default function BinderDetailPage() {
       }
 
       setBinder(data)
+
+      const { data: binderCards } = await supabase
+        .from('cards')
+        .select('id, name, image_url, binder_page, binder_slot')
+        .eq('binder_id', binderId)
+        .eq('binder_page', currentPage)
+
+      setCards(binderCards || [])
     }
 
     loadBinder()
-  }, [binderId])
+  }, [binderId, currentPage])
 
   if (!binder) {
     return (
@@ -88,14 +105,40 @@ export default function BinderDetailPage() {
           gridTemplateColumns: `repeat(${binder.columns_count}, minmax(0, 1fr))`,
         }}
       >
-        {slots.map((_, index) => (
-          <div
-            key={index}
-            className="flex aspect-[2.5/3.5] items-center justify-center rounded-2xl border border-dashed border-slate-700 bg-slate-900 text-slate-500"
-          >
-            Slot {index + 1}
-          </div>
-        ))}
+        {slots.map((_, index) => {
+          const slotNumber = index + 1
+
+          const card = cards.find(
+            (c) => c.binder_slot === slotNumber
+          )
+
+          return (
+            <div
+              key={index}
+              className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-900"
+            >
+              {card ? (
+                <div>
+                  {card.image_url && (
+                    <img
+                      src={card.image_url}
+                      alt={card.name}
+                      className="w-full"
+                    />
+                  )}
+
+                  <div className="p-2 text-center text-sm">
+                    {card.name}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex aspect-[2.5/3.5] items-center justify-center text-slate-500">
+                  Slot {slotNumber}
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
 
       <div className="mt-8 flex gap-4">
