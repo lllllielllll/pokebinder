@@ -100,7 +100,7 @@ export default function BinderDetailPage() {
       </div>
 
       <div
-        className="grid gap-4"
+        className="mx-auto grid max-w-5xl gap-4"
         style={{
           gridTemplateColumns: `repeat(${binder.columns_count}, minmax(0, 1fr))`,
         }}
@@ -132,9 +132,15 @@ export default function BinderDetailPage() {
                   </div>
                 </div>
               ) : (
-                <div className="flex aspect-[2.5/3.5] items-center justify-center text-slate-500">
-                  Slot {slotNumber}
-                </div>
+                <button
+  type="button"
+  onClick={() => {
+    alert(`Escolher carta para o slot ${slotNumber}`)
+  }}
+  className="flex aspect-[2.5/3.5] w-full items-center justify-center rounded-2xl border border-dashed border-slate-700 text-slate-500 transition hover:border-yellow-400 hover:text-yellow-300"
+>
+  + Slot {slotNumber}
+</button>
               )}
             </div>
           )
