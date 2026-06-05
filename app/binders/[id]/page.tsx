@@ -71,7 +71,12 @@ export default function BinderDetailPage() {
   .neq('image_url', '')
   .order('name', { ascending: true })
 
-setCollectionCards(allCards || [])
+setCollectionCards(
+  (allCards || []).filter((card) =>
+    card.image_url &&
+    card.image_url.startsWith('http')
+  )
+)
     }
 
     loadBinder()
@@ -229,12 +234,15 @@ async function addCardToSlot(cardId: string) {
             className="rounded-2xl border border-slate-800 bg-slate-900 p-4 text-left hover:border-yellow-400"
           >
             {card.image_url && (
-              <img
-                src={card.image_url}
-                alt={card.name}
-                className="mb-3 w-28 rounded-xl"
-              />
-            )}
+  <img
+    src={card.image_url || ''}
+    alt={card.name}
+    onError={(event) => {
+      event.currentTarget.style.display = 'none'
+    }}
+    className="mb-3 w-28 rounded-xl"
+  />
+)}
 
             <p className="font-semibold">
               {card.name}
