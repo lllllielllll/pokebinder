@@ -24,10 +24,11 @@ type Card = {
 export default function BinderDetailPage() {
   const params = useParams()
   const binderId = params.id as string
-
   const [binder, setBinder] = useState<Binder | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [cards, setCards] = useState<Card[]>([])
+  const [collectionCards, setCollectionCards] = useState<Card[]>([])
+  const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
 
   useEffect(() => {
     async function loadBinder() {
@@ -61,11 +62,44 @@ export default function BinderDetailPage() {
         .eq('binder_page', currentPage)
 
       setCards(binderCards || [])
+    
+    const { data: allCards } = await supabase
+  .from('cards')
+  .select('id, name, image_url, binder_page, binder_slot')
+  .is('binder_id', null)
+
+setCollectionCards(allCards || [])
     }
 
     loadBinder()
   }, [binderId, currentPage])
+async function addCardToSlot(cardId: string) {
+  if (!selectedSlot) return
 
+  const { error } = await supabase
+    .from('cards')
+    .update({
+      binder_id: binderId,
+      binder_page: currentPage,
+      binder_slot: selectedSlot,
+    })
+    .eq('id', cardId)
+
+  if (error) {
+    alert(error.message)
+    return
+  }
+
+  setSelectedSlot(null)
+
+  const { data: binderCards } = await supabase
+    .from('cards')
+    .select('id, name, image_url, binder_page, binder_slot')
+    .eq('binder_id', binderId)
+    .eq('binder_page', currentPage)
+
+  setCards(binderCards || [])
+}
   if (!binder) {
     return (
       <main className="min-h-screen bg-slate-950 p-8 text-white">
@@ -135,7 +169,7 @@ export default function BinderDetailPage() {
                 <button
   type="button"
   onClick={() => {
-    alert(`Escolher carta para o slot ${slotNumber}`)
+    setSelectedSlot(slotNumber)
   }}
   className="flex aspect-[2.5/3.5] w-full items-center justify-center rounded-2xl border border-dashed border-slate-700 text-slate-500 transition hover:border-yellow-400 hover:text-yellow-300"
 >
@@ -166,6 +200,48 @@ export default function BinderDetailPage() {
           Próxima página
         </button>
       </div>
+    {selectedSlot && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6">
+    <div className="max-h-[80vh] w-full max-w-3xl overflow-auto rounded-3xl border border-slate-800 bg-slate-950 p-6">
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="text-2xl font-bold">
+          Escolher carta para o slot {selectedSlot}
+        </h2>
+
+        <button
+          type="button"
+          onClick={() => setSelectedSlot(null)}
+          className="rounded-full border border-slate-700 px-4 py-2"
+        >
+          Fechar
+        </button>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {collectionCards.map((card) => (
+          <button
+            key={card.id}
+            type="button"
+            onClick={() => addCardToSlot(card.id)}
+            className="rounded-2xl border border-slate-800 bg-slate-900 p-4 text-left hover:border-yellow-400"
+          >
+            {card.image_url && (
+              <img
+                src={card.image_url}
+                alt={card.name}
+                className="mb-3 w-28 rounded-xl"
+              />
+            )}
+
+            <p className="font-semibold">
+              {card.name}
+            </p>
+          </button>
+        ))}
+      </div>
+    </div>
+  </div>
+)}
     </main>
   )
 }
