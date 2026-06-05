@@ -21,6 +21,7 @@ type Card = {
   api_card_id?: string | null
   binder_page?: number | null
   binder_slot?: number | null
+  manual_price_brl?: number | null
   }
 
 function getLanguageFlag(language: string) {
@@ -63,6 +64,7 @@ export default function ColecaoPage() {
   const [editCondition, setEditCondition] = useState('')
   const [editVariant, setEditVariant] = useState('')
   const [editQuantity, setEditQuantity] = useState(1)
+  const [editManualPrice, setEditManualPrice] = useState('')
 
   const [isPlacingInBinder, setIsPlacingInBinder] = useState(false)
   const [targetBinderPage, setTargetBinderPage] = useState(1)
@@ -163,6 +165,9 @@ const { data, error } = await supabase
     setEditCondition(card.condition || 'NM')
     setEditVariant(card.variant || 'Todas')
     setEditQuantity(card.quantity || 1)
+    setEditManualPrice(
+      card.manual_price_brl?.toString() || ''
+    )
   }
 
   async function saveEdit() {
@@ -175,6 +180,11 @@ const { data, error } = await supabase
         condition: editCondition,
         variant: editVariant,
         quantity: editQuantity,
+
+        manual_price_brl:
+          editManualPrice === ''
+            ? null
+            : Number(editManualPrice),
       })
       .eq('id', selectedCard.id)
 
@@ -734,9 +744,11 @@ const { data, error } = await supabase
                     </p>
 
                     <p className="mt-1 text-2xl font-bold text-yellow-400">
-                      {card.auto_price
-                        ? `US$ ${card.auto_price}`
-                        : 'Sem preço'}
+                      {card.manual_price_brl
+                        ? `R$ ${Number(card.manual_price_brl).toFixed(2)}`
+                        : card.auto_price
+                          ? `US$ ${card.auto_price}`
+                          : 'Sem preço'}
                     </p>
                   </div>
                 </article>
@@ -833,10 +845,12 @@ const { data, error } = await supabase
                     Valor automático
                   </p>
 
-                  <p className="mt-2 text-4xl font-bold text-yellow-400">
-                    {selectedCard.auto_price
-                      ? `US$ ${selectedCard.auto_price}`
-                      : 'Sem preço'}
+                  <p className="mt-1 text-2xl font-bold text-yellow-400">
+                    {selectedCard.manual_price_brl
+                      ? `R$ ${Number(selectedCard.manual_price_brl).toFixed(2)}`
+                      : selectedCard.auto_price
+                        ? `US$ ${selectedCard.auto_price}`
+                        : 'Sem preço'}
                   </p>
                 </div>
 
@@ -907,6 +921,22 @@ const { data, error } = await supabase
                           setEditQuantity(Number(event.target.value))
                         }
                         className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm">
+                        Preço manual (R$)
+                      </label>
+
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editManualPrice}
+                        onChange={(event) =>
+                          setEditManualPrice(event.target.value)
+                        }
+                        className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2"
                       />
                     </div>
 
