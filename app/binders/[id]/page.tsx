@@ -67,6 +67,9 @@ export default function BinderDetailPage() {
   .from('cards')
   .select('id, name, image_url, binder_page, binder_slot')
   .is('binder_id', null)
+  .not('image_url', 'is', null)
+  .neq('image_url', '')
+  .order('name', { ascending: true })
 
 setCollectionCards(allCards || [])
     }
