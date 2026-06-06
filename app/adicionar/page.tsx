@@ -748,15 +748,16 @@ setManualImageUrl('')
             </p>
           )}
 
-          {message === 'Nenhuma carta encontrada.' && (
-            <button
-              type="button"
-              onClick={() => setManualMode(true)}
-              className="rounded-full bg-yellow-400 px-6 py-3 font-semibold text-slate-950"
-            >
-              Adicionar manualmente
-            </button>
-          )}
+          <button
+  type="button"
+  onClick={() => {
+    setManualMode(true)
+    setSelectedCard(null)
+  }}
+  className="rounded-full bg-yellow-400 px-6 py-3 font-semibold text-slate-950"
+>
+  + Adicionar manualmente
+</button>
 
           {results.length > 0 && (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
