@@ -21,7 +21,8 @@ type Card = {
   api_card_id?: string | null
   binder_page?: number | null
   binder_slot?: number | null
-  manual_price_brl?: number | null
+  manual_price?: number | null
+  manual_price_currency?: string | null
   }
 
 function getLanguageFlag(language: string) {
@@ -65,6 +66,7 @@ export default function ColecaoPage() {
   const [editVariant, setEditVariant] = useState('')
   const [editQuantity, setEditQuantity] = useState(1)
   const [editManualPrice, setEditManualPrice] = useState('')
+  const [editManualPriceCurrency, setEditManualPriceCurrency] = useState('BRL')
 
   const [isPlacingInBinder, setIsPlacingInBinder] = useState(false)
   const [targetBinderPage, setTargetBinderPage] = useState(1)
@@ -166,8 +168,11 @@ const { data, error } = await supabase
     setEditVariant(card.variant || 'Todas')
     setEditQuantity(card.quantity || 1)
     setEditManualPrice(
-      card.manual_price_brl?.toString() || ''
+      card.manual_price?.toString() || ''
     )
+    setEditManualPriceCurrency(
+  card.manual_price_currency || 'BRL'
+)
   }
 
   async function saveEdit() {
@@ -181,10 +186,13 @@ const { data, error } = await supabase
         variant: editVariant,
         quantity: editQuantity,
 
-        manual_price_brl:
-          editManualPrice === ''
-            ? null
-            : Number(editManualPrice),
+        manual_price:
+  editManualPrice === ''
+    ? null
+    : Number(editManualPrice),
+
+manual_price_currency: editManualPriceCurrency,
+
       })
       .eq('id', selectedCard.id)
 
@@ -451,11 +459,25 @@ const { data, error } = await supabase
     return sum + (card.quantity || 1)
   }, 0)
 
-  const totalUsd = cards.reduce((sum, card) => {
-    return sum + ((card.auto_price || 0) * (card.quantity || 1))
-  }, 0)
+  function getCardValueUsd(card: Card) {
+  const quantity = card.quantity || 1
 
-  const totalBrl = totalUsd * usdToBrl
+  if (card.manual_price && card.manual_price_currency === 'BRL') {
+    return (Number(card.manual_price) / usdToBrl) * quantity
+  }
+
+  if (card.manual_price && card.manual_price_currency === 'USD') {
+    return Number(card.manual_price) * quantity
+  }
+
+  return (card.auto_price || 0) * quantity
+}
+
+const totalUsd = cards.reduce((sum, card) => {
+  return sum + getCardValueUsd(card)
+}, 0)
+
+const totalBrl = totalUsd * usdToBrl
 
   return (
     <main className="min-h-screen bg-slate-950 p-8 text-white">
@@ -744,8 +766,8 @@ const { data, error } = await supabase
                     </p>
 
                     <p className="mt-1 text-2xl font-bold text-yellow-400">
-                      {card.manual_price_brl
-                        ? `R$ ${Number(card.manual_price_brl).toFixed(2)}`
+                      {card.manual_price
+                        ? `R$ ${Number(card.manual_price).toFixed(2)}`
                         : card.auto_price
                           ? `US$ ${card.auto_price}`
                           : 'Sem preço'}
@@ -846,8 +868,8 @@ const { data, error } = await supabase
                   </p>
 
                   <p className="mt-1 text-2xl font-bold text-yellow-400">
-                    {selectedCard.manual_price_brl
-                      ? `R$ ${Number(selectedCard.manual_price_brl).toFixed(2)}`
+                    {selectedCard.manual_price
+                      ? `R$ ${Number(selectedCard.manual_price).toFixed(2)}`
                       : selectedCard.auto_price
                         ? `US$ ${selectedCard.auto_price}`
                         : 'Sem preço'}
@@ -927,6 +949,23 @@ const { data, error } = await supabase
                     <div>
                       <label className="mb-2 block text-sm">
                         Preço manual (R$)
+                        <div>
+  <label className="mb-2 block text-sm">
+    Moeda do preço manual
+  </label>
+
+  <select
+    value={editManualPriceCurrency}
+    onChange={(event) =>
+      setEditManualPriceCurrency(event.target.value)
+    }
+    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2"
+  >
+    <option value="BRL">BRL — Real</option>
+    <option value="USD">USD — Dólar</option>
+    <option value="EUR">EUR — Euro</option>
+  </select>
+</div>
                       </label>
 
                       <input
