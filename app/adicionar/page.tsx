@@ -84,6 +84,11 @@ export default function AdicionarCartaPage() {
 
   const [results, setResults] = useState<ApiCard[]>([])
   const [selectedCard, setSelectedCard] = useState<ApiCard | null>(null)
+  const [manualMode, setManualMode] = useState(false)
+  const [manualName, setManualName] = useState('')
+  const [manualSetName, setManualSetName] = useState('')
+  const [manualCardNumber, setManualCardNumber] = useState('')
+  const [manualRarity, setManualRarity] = useState('')
 
   function getLanguageCode(language: string) {
     switch (language) {
@@ -336,10 +341,15 @@ let cards: ApiCard[] = uniqueCards
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!selectedCard) {
-      setMessage('Selecione uma carta.')
-      return
-    }
+    if (!selectedCard && !manualMode) {
+  setMessage('Selecione uma carta ou use o modo manual.')
+  return
+}
+
+if (manualMode && !manualName.trim()) {
+  setMessage('Digite o nome da carta manual.')
+  return
+}
 
     setLoading(true)
     setMessage('')
@@ -357,7 +367,7 @@ if (!user) {
     const { error } = await supabase
       .from('cards')
       .insert({
-        name: selectedCard.name,
+        name: manualMode ? manualName : selectedCard!.name,
         language,
         condition,
         quantity,
@@ -365,16 +375,19 @@ if (!user) {
 
         image_url: manualImageUrl || getImageUrl(selectedCard),
 
-        set_name: selectedCard.set?.name || null,
+        set_name: manualMode
+  ? manualSetName || null
+  : selectedCard!.set?.name || null,
 
-        card_number:
-          selectedCard.number ||
-          selectedCard.localId ||
-          null,
+        card_number: manualMode
+  ? manualCardNumber || null
+  : selectedCard!.number || selectedCard!.localId || null,
 
-        rarity: selectedCard.rarity || null,
+        rarity: manualMode
+  ? manualRarity || null
+  : selectedCard!.rarity || null,
 
-        auto_price: getAutoPrice(selectedCard),
+        auto_price: manualMode ? null : getAutoPrice(selectedCard),
 
         auto_price_brl: manualPriceBrl
           ? Number(manualPriceBrl)
@@ -388,13 +401,25 @@ if (!user) {
         binder_page: selectedBinderId ? binderPage : null,
         binder_slot: selectedBinderId ? binderSlot : null,
 
-        api_card_id: selectedCard.images ? selectedCard.id : null,
+        api_card_id:
+  !manualMode && selectedCard?.images
+    ? selectedCard.id
+    : null,
 
-        tcgdex_id: selectedCard.images ? null : selectedCard.id || null,
+tcgdex_id:
+  !manualMode && !selectedCard?.images
+    ? selectedCard?.id || null
+    : null,
 
-        tcgdex_local_id: selectedCard.localId || null,
+tcgdex_local_id:
+  !manualMode
+    ? selectedCard?.localId || null
+    : null,
 
-        tcgdex_set_id: selectedCard.set?.id || null,
+tcgdex_set_id:
+  !manualMode
+    ? selectedCard?.set?.id || null
+    : null,
 
         card_language_code: getLanguageCode(language),
       })
@@ -410,6 +435,12 @@ if (!user) {
     setResults([])
     setSelectedCard(null)
     setLoading(false)
+    setManualMode(false)
+setManualName('')
+setManualSetName('')
+setManualCardNumber('')
+setManualRarity('')
+setManualImageUrl('')
   }
 
   return (
@@ -647,6 +678,44 @@ if (!user) {
   />
 </div>
 
+{manualMode && (
+  <div className="rounded-3xl border border-yellow-400 bg-yellow-400/10 p-5">
+    <h2 className="mb-4 text-2xl font-bold text-yellow-300">
+      Adicionar carta manualmente
+    </h2>
+
+    <div className="space-y-4">
+      <input
+        value={manualName}
+        onChange={(e) => setManualName(e.target.value)}
+        placeholder="Nome da carta"
+        className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+      />
+
+      <input
+        value={manualSetName}
+        onChange={(e) => setManualSetName(e.target.value)}
+        placeholder="Coleção / Set"
+        className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+      />
+
+      <input
+        value={manualCardNumber}
+        onChange={(e) => setManualCardNumber(e.target.value)}
+        placeholder="Número da carta"
+        className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+      />
+
+      <input
+        value={manualRarity}
+        onChange={(e) => setManualRarity(e.target.value)}
+        placeholder="Raridade"
+        className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+      />
+    </div>
+  </div>
+)}
+
           <div className="flex gap-4">
             <button
               type="button"
@@ -677,6 +746,16 @@ if (!user) {
             <p className="text-slate-300">
               {message}
             </p>
+          )}
+
+          {message === 'Nenhuma carta encontrada.' && (
+            <button
+              type="button"
+              onClick={() => setManualMode(true)}
+              className="rounded-full bg-yellow-400 px-6 py-3 font-semibold text-slate-950"
+            >
+              Adicionar manualmente
+            </button>
           )}
 
           {results.length > 0 && (
