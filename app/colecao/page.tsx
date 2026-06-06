@@ -963,7 +963,6 @@ const totalBrl = totalUsd * usdToBrl
   >
     <option value="BRL">BRL — Real</option>
     <option value="USD">USD — Dólar</option>
-    <option value="EUR">EUR — Euro</option>
   </select>
 </div>
                       </label>
