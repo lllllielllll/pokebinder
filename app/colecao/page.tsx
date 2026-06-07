@@ -23,6 +23,7 @@ type Card = {
   binder_slot?: number | null
   manual_price?: number | null
   manual_price_currency?: string | null
+  manual_price_updated_at?: string | null
   }
 
 function getLanguageFlag(language: string) {
@@ -177,24 +178,53 @@ const { data, error } = await supabase
 
   async function saveEdit() {
     if (!selectedCard) return
+    if (!selectedCard) return
+
+const updateData = {
+
+  language: editLanguage,
+
+  condition: editCondition,
+
+  variant: editVariant,
+
+  quantity: editQuantity,
+
+  manual_price:
+
+    editManualPrice === ''
+
+      ? null
+
+      : Number(editManualPrice),
+
+  manual_price_currency: editManualPriceCurrency,
+
+  manual_price_updated_at:
+
+    editManualPrice === ''
+
+      ? null
+
+      : new Date().toISOString(),
+
+}
+
+console.log(updateData)
+
+   const manualPriceValue =
+  editManualPrice === '' ? null : Number(editManualPrice)
+
+const manualPriceUpdatedAt =
+  editManualPrice === '' ? null : new Date().toISOString()
+
+console.log('manualPriceValue', manualPriceValue)
+console.log('manualPriceUpdatedAt', manualPriceUpdatedAt)
 
     const { error } = await supabase
-      .from('cards')
-      .update({
-        language: editLanguage,
-        condition: editCondition,
-        variant: editVariant,
-        quantity: editQuantity,
-
-        manual_price:
-  editManualPrice === ''
-    ? null
-    : Number(editManualPrice),
-
-manual_price_currency: editManualPriceCurrency,
-
-      })
-      .eq('id', selectedCard.id)
+  .from('cards')
+  .update(updateData)
+  .eq('id', selectedCard.id)
 
     if (error) {
       alert(`Erro ao editar: ${error.message}`)
@@ -207,6 +237,9 @@ manual_price_currency: editManualPriceCurrency,
       condition: editCondition,
       variant: editVariant,
       quantity: editQuantity,
+      manual_price: editManualPrice === '' ? null : Number(editManualPrice),
+      manual_price_currency: editManualPriceCurrency,
+      manual_price_updated_at: editManualPrice === '' ? null : new Date().toISOString(),
     }
 
     setCards((currentCards) =>
@@ -772,6 +805,12 @@ const totalBrl = totalUsd * usdToBrl
                           ? `US$ ${card.auto_price}`
                           : 'Sem preço'}
                     </p>
+                    {selectedCard?.manual_price_updated_at ? (
+  <p className="mt-2 text-sm text-slate-400">
+    Atualizado em{' '}
+    {new Date(selectedCard.manual_price_updated_at).toLocaleDateString('pt-BR')}
+  </p>
+) : null}
                   </div>
                 </article>
               ))}
