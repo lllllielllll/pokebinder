@@ -839,11 +839,14 @@ const totalBrl = totalUsd * usdToBrl
       </div>
 
       {selectedCard && (
-
-          <div
-  className="fixed inset-0 z-50 overflow-y-auto bg-black/80 p-4"
-            onClick={(event) => event.stopPropagation()}
-          >
+  <div
+    className="fixed inset-0 z-50 overflow-y-auto bg-black/80 p-4"
+    onClick={() => setSelectedCard(null)}
+  >
+    <div
+      className="mx-auto my-6 max-h-[90vh] max-w-5xl overflow-y-auto rounded-3xl bg-slate-900 p-8"
+      onClick={(event) => event.stopPropagation()}
+    >
             <div className="grid gap-6 md:grid-cols-2">
               <div>
                 {getCollectionImageUrl(selectedCard.image_url) ? (
@@ -1087,10 +1090,11 @@ const totalBrl = totalUsd * usdToBrl
                   className="mt-8 rounded-full bg-yellow-400 px-6 py-3 font-semibold text-slate-950"
                 >
                   Fechar
-                </button>
+                                </button>
               </div>
             </div>
           </div>
+        </div>
       )}
     </main>
   )
