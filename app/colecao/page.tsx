@@ -844,16 +844,16 @@ const totalBrl = totalUsd * usdToBrl
     onClick={() => setSelectedCard(null)}
   >
     <div
-      className="mx-auto my-6 max-h-[90vh] max-w-5xl overflow-y-auto rounded-3xl bg-slate-900 p-8"
+      className="mx-auto my-6 max-h-[90vh] max-w-7xl overflow-y-auto rounded-3xl bg-slate-900 p-8"
       onClick={(event) => event.stopPropagation()}
     >
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-10 md:grid-cols-[420px_1fr]">
               <div>
                 {getCollectionImageUrl(selectedCard.image_url) ? (
                   <img
                     src={getCollectionImageUrl(selectedCard.image_url) || ''}
                     alt={selectedCard.name}
-                    className="max-h-[280px] w-auto rounded-3xl object-contain"
+                    className="max-h-[550px] w-auto rounded-3xl object-contain shadow-2xl"
                   />
                 ) : (
                   <div className="flex h-[360px] items-center justify-center rounded-3xl bg-slate-950">
