@@ -839,21 +839,18 @@ const totalBrl = totalUsd * usdToBrl
       </div>
 
       {selectedCard && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
-          onClick={() => setSelectedCard(null)}
-        >
+
           <div
-            className="max-w-4xl rounded-3xl bg-slate-900 p-8"
+  className="fixed inset-0 z-50 overflow-y-auto bg-black/80 p-4"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="grid gap-8 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-2">
               <div>
                 {getCollectionImageUrl(selectedCard.image_url) ? (
                   <img
                     src={getCollectionImageUrl(selectedCard.image_url) || ''}
                     alt={selectedCard.name}
-                    className="max-h-[420px] w-auto rounded-3xl object-contain"
+                    className="max-h-[280px] w-auto rounded-3xl object-contain"
                   />
                 ) : (
                   <div className="flex h-[360px] items-center justify-center rounded-3xl bg-slate-950">
@@ -905,7 +902,7 @@ const totalBrl = totalUsd * usdToBrl
                 </div>
 
                 {isEditing ? (
-                  <div className="mt-8 max-h-[70vh] space-y-4 overflow-y-auto rounded-3xl bg-slate-950 p-6">
+                  <div className="mt-6 max-h-[45vh] space-y-3 overflow-y-auto rounded-3xl bg-slate-950 p-5">
                     <h3 className="text-xl font-bold">Editar carta</h3>
 
                     <div>
@@ -1094,7 +1091,6 @@ const totalBrl = totalUsd * usdToBrl
               </div>
             </div>
           </div>
-        </div>
       )}
     </main>
   )
