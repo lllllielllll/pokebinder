@@ -491,11 +491,35 @@ const totalUsd = cards.reduce((sum, card) => {
 
 const totalBrl = totalUsd * usdToBrl
 
+const manualPriceReviewCards = cards.filter((card) => {
+  if (!card.manual_price || !card.manual_price_updated_at) return false
+
+  const updatedAt = new Date(card.manual_price_updated_at)
+  const now = new Date()
+
+  const daysSinceUpdate =
+    (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24)
+
+  return daysSinceUpdate >= 30
+})
+
   return (
     <main className="min-h-screen bg-slate-950 p-8 text-white">
       <ProfileMenu />
 
       <div className="mx-auto max-w-7xl">
+
+    {manualPriceReviewCards.length > 0 && (
+    <div className="mb-6 rounded-2xl border border-yellow-500 bg-yellow-500/10 p-4">
+      <p className="font-semibold text-yellow-300">
+        🔔 {manualPriceReviewCards.length} preço(s) manual(is) precisam ser revisados
+      </p>
+
+      <p className="mt-1 text-sm text-slate-300">
+        Estes preços foram atualizados há mais de 30 dias.
+      </p>
+    </div>
+  )}
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-yellow-400">
