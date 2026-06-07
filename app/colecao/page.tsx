@@ -762,8 +762,8 @@ const totalBrl = totalUsd * usdToBrl
 
                   <div className="mt-5 rounded-2xl bg-slate-950 p-4">
                     <p className="text-sm text-slate-400">
-                      Preço automático
-                    </p>
+  {card.manual_price ? `Preço manual (${card.manual_price_currency || 'BRL'})` : 'Preço automático'}
+</p>
 
                     <p className="mt-1 text-2xl font-bold text-yellow-400">
                       {card.manual_price
@@ -864,8 +864,10 @@ const totalBrl = totalUsd * usdToBrl
 
                 <div className="mt-8 rounded-3xl bg-slate-950 p-6">
                   <p className="text-sm text-slate-400">
-                    Valor automático
-                  </p>
+  {selectedCard.manual_price
+    ? `Preço manual (${selectedCard.manual_price_currency || 'BRL'})`
+    : 'Preço automático'}
+</p>
 
                   <p className="mt-1 text-2xl font-bold text-yellow-400">
                     {selectedCard.manual_price
