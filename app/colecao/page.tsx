@@ -180,38 +180,6 @@ const { data, error } = await supabase
     if (!selectedCard) return
     if (!selectedCard) return
 
-const updateData = {
-
-  language: editLanguage,
-
-  condition: editCondition,
-
-  variant: editVariant,
-
-  quantity: editQuantity,
-
-  manual_price:
-
-    editManualPrice === ''
-
-      ? null
-
-      : Number(editManualPrice),
-
-  manual_price_currency: editManualPriceCurrency,
-
-  manual_price_updated_at:
-
-    editManualPrice === ''
-
-      ? null
-
-      : new Date().toISOString(),
-
-}
-
-console.log(updateData)
-
    const manualPriceValue =
   editManualPrice === '' ? null : Number(editManualPrice)
 
@@ -220,6 +188,17 @@ const manualPriceUpdatedAt =
 
 console.log('manualPriceValue', manualPriceValue)
 console.log('manualPriceUpdatedAt', manualPriceUpdatedAt)
+
+const updateData = {
+  language: editLanguage,
+  condition: editCondition,
+  variant: editVariant,
+  quantity: editQuantity,
+
+  manual_price: manualPriceValue,
+  manual_price_currency: editManualPriceCurrency,
+  manual_price_updated_at: manualPriceUpdatedAt,
+}
 
     const { error } = await supabase
   .from('cards')
