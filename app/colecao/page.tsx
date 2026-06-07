@@ -86,6 +86,7 @@ export default function ColecaoPage() {
 
   const [usdToBrl, setUsdToBrl] = useState(5.1)
   const [exchangeUpdatedAt, setExchangeUpdatedAt] = useState('')
+  const [showPriceReviewPanel, setShowPriceReviewPanel] = useState(false)
 
   useEffect(() => {
     async function fetchCards() {
@@ -503,6 +504,17 @@ const manualPriceReviewCards = cards.filter((card) => {
   return daysSinceUpdate >= 30
 })
 
+function getDaysSinceManualPriceUpdate(card: Card) {
+  if (!card.manual_price_updated_at) return null
+
+  const updatedAt = new Date(card.manual_price_updated_at)
+  const now = new Date()
+
+  return Math.floor(
+    (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24)
+  )
+}
+
   return (
     <main className="min-h-screen bg-slate-950 p-8 text-white">
       <ProfileMenu />
@@ -510,16 +522,85 @@ const manualPriceReviewCards = cards.filter((card) => {
       <div className="mx-auto max-w-7xl">
 
     {manualPriceReviewCards.length > 0 && (
-    <div className="mb-6 rounded-2xl border border-yellow-500 bg-yellow-500/10 p-4">
-      <p className="font-semibold text-yellow-300">
-        🔔 {manualPriceReviewCards.length} preço(s) manual(is) precisam ser revisados
-      </p>
+  <div className="mb-6 rounded-3xl border border-yellow-500 bg-yellow-500/10 p-5">
+    <button
+      type="button"
+      onClick={() =>
+        setShowPriceReviewPanel((current) => !current)
+      }
+      className="flex w-full items-center justify-between text-left"
+    >
+      <div>
+        <p className="font-semibold text-yellow-300">
+          🔔 {manualPriceReviewCards.length} preço(s) manual(is) precisam ser revisados
+        </p>
 
-      <p className="mt-1 text-sm text-slate-300">
-        Estes preços foram atualizados há mais de 30 dias.
-      </p>
-    </div>
-  )}
+        <p className="mt-1 text-sm text-slate-300">
+          Estes preços foram atualizados há mais de 30 dias.
+        </p>
+      </div>
+
+      <span className="rounded-full bg-yellow-400 px-4 py-2 text-sm font-semibold text-slate-950">
+        {showPriceReviewPanel ? 'Ocultar' : 'Ver cartas'}
+      </span>
+    </button>
+
+    {showPriceReviewPanel && (
+      <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {manualPriceReviewCards.map((card) => {
+          const days = getDaysSinceManualPriceUpdate(card)
+
+          return (
+            <button
+              key={card.id}
+              type="button"
+              onClick={() => {
+                setSelectedCard(card)
+                setIsEditing(false)
+              }}
+              className="rounded-2xl border border-slate-700 bg-slate-950 p-4 text-left transition hover:border-yellow-400"
+            >
+              <div className="flex gap-4">
+                {getCollectionImageUrl(card.image_url) ? (
+                  <img
+                    src={getCollectionImageUrl(card.image_url) || ''}
+                    alt={card.name}
+                    className="h-24 rounded-xl object-contain"
+                  />
+                ) : (
+                  <div className="flex h-24 w-16 items-center justify-center rounded-xl bg-slate-800 text-xs text-slate-500">
+                    Sem imagem
+                  </div>
+                )}
+
+                <div>
+                  <p className="font-bold text-white">
+                    {card.name}
+                  </p>
+
+                  <p className="mt-1 text-sm text-slate-400">
+                    {card.set_name || 'Set não informado'}
+                  </p>
+
+                  <p className="mt-2 text-sm text-yellow-300">
+                    {days !== null
+                      ? `Atualizado há ${days} dias`
+                      : 'Sem data de atualização'}
+                  </p>
+
+                  <p className="mt-1 text-sm text-slate-300">
+                    {card.manual_price_currency || 'BRL'}{' '}
+                    {Number(card.manual_price || 0).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    )}
+  </div>
+)}
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-yellow-400">
