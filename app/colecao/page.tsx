@@ -835,10 +835,10 @@ const totalBrl = totalUsd * usdToBrl
                   <img
                     src={getCollectionImageUrl(selectedCard.image_url) || ''}
                     alt={selectedCard.name}
-                    className="w-full rounded-3xl"
+                    className="max-h-[420px] w-auto rounded-3xl object-contain"
                   />
                 ) : (
-                  <div className="flex h-[500px] items-center justify-center rounded-3xl bg-slate-800">
+                  <div className="flex h-[360px] items-center justify-center rounded-3xl bg-slate-950">
                     Sem imagem
                   </div>
                 )}
@@ -879,7 +879,7 @@ const totalBrl = totalUsd * usdToBrl
                 </div>
 
                 {isEditing ? (
-                  <div className="mt-8 space-y-4 rounded-3xl bg-slate-950 p-6">
+                  <div className="mt-8 max-h-[70vh] space-y-4 overflow-y-auto rounded-3xl bg-slate-950 p-6">
                     <h3 className="text-xl font-bold">Editar carta</h3>
 
                     <div>
