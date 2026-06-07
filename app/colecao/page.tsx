@@ -894,6 +894,14 @@ const totalBrl = totalUsd * usdToBrl
                         ? `US$ ${selectedCard.auto_price}`
                         : 'Sem preço'}
                   </p>
+
+                  {selectedCard?.manual_price_updated_at ? (
+  <p className="mt-2 text-sm text-slate-400">
+    Atualizado em{' '}
+    {new Date(selectedCard.manual_price_updated_at).toLocaleDateString('pt-BR')}
+  </p>
+) : null}
+
                 </div>
 
                 {isEditing ? (
