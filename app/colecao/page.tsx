@@ -421,14 +421,26 @@ const updateData = {
     )
   })
 
-  const sortedCards = [...filteredCards].sort((a, b) => {
-    if (sortBy === 'price-high') {
-      return (b.auto_price || 0) - (a.auto_price || 0)
+  function getSortPrice(card: Card) {
+  if (card.manual_price) {
+    if (card.manual_price_currency === 'USD') {
+      return Number(card.manual_price)
     }
 
-    if (sortBy === 'price-low') {
-      return (a.auto_price || 0) - (b.auto_price || 0)
-    }
+    return Number(card.manual_price) / usdToBrl
+  }
+
+  return card.auto_price || 0
+}
+
+  const sortedCards = [...filteredCards].sort((a, b) => {
+    if (sortBy === 'price-high') {
+  return getSortPrice(b) - getSortPrice(a)
+}
+
+if (sortBy === 'price-low') {
+  return getSortPrice(a) - getSortPrice(b)
+}
 
     if (sortBy === 'name') {
       return a.name.localeCompare(b.name)
