@@ -68,6 +68,11 @@ export default function ColecaoPage() {
   const [editQuantity, setEditQuantity] = useState(1)
   const [editManualPrice, setEditManualPrice] = useState('')
   const [editManualPriceCurrency, setEditManualPriceCurrency] = useState('BRL')
+  const [editName, setEditName] = useState('')
+  const [editImageUrl, setEditImageUrl] = useState('')
+  const [editSetName, setEditSetName] = useState('')
+  const [editCardNumber, setEditCardNumber] = useState('')
+  const [editRarity, setEditRarity] = useState('')
 
   const [isPlacingInBinder, setIsPlacingInBinder] = useState(false)
   const [targetBinderPage, setTargetBinderPage] = useState(1)
@@ -165,6 +170,11 @@ const { data, error } = await supabase
 
   function startEditing(card: Card) {
     setIsEditing(true)
+    setEditName(card.name || '')
+    setEditImageUrl(card.image_url || '')
+    setEditSetName(card.set_name || '')
+    setEditCardNumber(card.card_number || '')
+    setEditRarity(card.rarity || '')
     setEditLanguage(card.language || 'Português')
     setEditCondition(card.condition || 'NM')
     setEditVariant(card.variant || 'Todas')
@@ -191,6 +201,12 @@ console.log('manualPriceValue', manualPriceValue)
 console.log('manualPriceUpdatedAt', manualPriceUpdatedAt)
 
 const updateData = {
+  name: editName,
+  image_url: editImageUrl || undefined,
+  set_name: editSetName || undefined,
+  card_number: editCardNumber || undefined,
+  rarity: editRarity || undefined,
+
   language: editLanguage,
   condition: editCondition,
   variant: editVariant,
@@ -213,6 +229,11 @@ const updateData = {
 
     const updatedCard = {
       ...selectedCard,
+      name: editName,
+      image_url: editImageUrl || undefined,
+set_name: editSetName || undefined,
+card_number: editCardNumber || undefined,
+rarity: editRarity || undefined,
       language: editLanguage,
       condition: editCondition,
       variant: editVariant,
@@ -223,10 +244,12 @@ const updateData = {
     }
 
     setCards((currentCards) =>
-      currentCards.map((card) =>
-        card.id === selectedCard.id ? updatedCard : card
-      )
-    )
+  currentCards.map((card) =>
+    card.id === selectedCard.id
+      ? updatedCard
+      : card
+  )
+)
 
     setSelectedCard(updatedCard)
     setIsEditing(false)
@@ -429,30 +452,6 @@ const updateData = {
 
     return Number(card.manual_price) / usdToBrl
   }
-
-  function needsPriceReview(card: Card) {
-  
-  function getDaysSinceUpdate(dateString: string) {
-  const updatedAt = new Date(dateString)
-  const now = new Date()
-
-  return Math.floor(
-    (now.getTime() - updatedAt.getTime()) /
-      (1000 * 60 * 60 * 24)
-  )
-} 
-    
-  if (!card.manual_price || !card.manual_price_updated_at) return false
-
-  const updatedAt = new Date(card.manual_price_updated_at)
-  const now = new Date()
-
-  const days =
-    (now.getTime() - updatedAt.getTime()) /
-    (1000 * 60 * 60 * 24)
-
-  return days >= 30
-}
 
   return card.auto_price || 0
 }
@@ -1101,6 +1100,56 @@ function getDaysSinceManualPriceUpdate(card: Card) {
                 {isEditing ? (
                   <div className="mt-6 max-h-[45vh] space-y-3 overflow-y-auto rounded-3xl bg-slate-950 p-5">
                     <h3 className="text-xl font-bold">Editar carta</h3>
+
+                  <div>
+                    <label className="mb-2 block text-sm">Nome</label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(event) => setEditName(event.target.value)}
+                      className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm">URL da imagem</label>
+                    <input
+                      type="text"
+                      value={editImageUrl}
+                      onChange={(event) => setEditImageUrl(event.target.value)}
+                      className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm">Coleção / Set</label>
+                    <input
+                      type="text"
+                      value={editSetName}
+                      onChange={(event) => setEditSetName(event.target.value)}
+                      className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm">Número</label>
+                    <input
+                      type="text"
+                      value={editCardNumber}
+                      onChange={(event) => setEditCardNumber(event.target.value)}
+                      className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm">Raridade</label>
+                    <input
+                      type="text"
+                      value={editRarity}
+                      onChange={(event) => setEditRarity(event.target.value)}
+                      className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                    />
+                  </div>
 
                     <div>
                       <label className="mb-2 block text-sm">Idioma</label>
