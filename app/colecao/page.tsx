@@ -1091,7 +1091,14 @@ function getDaysSinceManualPriceUpdate(card: Card) {
                   {selectedCard?.manual_price_updated_at ? (
   <p className="mt-2 text-sm text-slate-400">
     Atualizado em{' '}
-    {new Date(selectedCard.manual_price_updated_at).toLocaleDateString('pt-BR')}
+    {new Date(
+      selectedCard.manual_price_updated_at
+    ).toLocaleDateString('pt-BR')}
+    {' • há '}
+    {getDaysSinceUpdate(
+      selectedCard.manual_price_updated_at
+    )}{' '}
+    dias
   </p>
 ) : null}
 
