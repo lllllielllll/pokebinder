@@ -1118,8 +1118,22 @@ function getDaysSinceManualPriceUpdate(card: Card) {
                     />
                   </div>
 
+                <div>
+                  <label className="mb-2 block text-sm">
+                    Upload de imagem
+                  </label>
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                  />
+                </div>
+                  
                   <div>
-                    <label className="mb-2 block text-sm">URL da imagem</label>
+                    <label className="mb-2 block text-sm">
+                      URL da imagem
+                      </label>
                     <input
                       type="text"
                       value={editImageUrl}
