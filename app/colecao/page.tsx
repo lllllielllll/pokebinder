@@ -430,6 +430,30 @@ const updateData = {
     return Number(card.manual_price) / usdToBrl
   }
 
+  function needsPriceReview(card: Card) {
+  
+  function getDaysSinceUpdate(dateString: string) {
+  const updatedAt = new Date(dateString)
+  const now = new Date()
+
+  return Math.floor(
+    (now.getTime() - updatedAt.getTime()) /
+      (1000 * 60 * 60 * 24)
+  )
+} 
+    
+  if (!card.manual_price || !card.manual_price_updated_at) return false
+
+  const updatedAt = new Date(card.manual_price_updated_at)
+  const now = new Date()
+
+  const days =
+    (now.getTime() - updatedAt.getTime()) /
+    (1000 * 60 * 60 * 24)
+
+  return days >= 30
+}
+
   return card.auto_price || 0
 }
 
@@ -452,6 +476,29 @@ if (sortBy === 'price-low') {
 
     return 0
   })
+
+  function needsPriceReview(card: Card) {
+  if (!card.manual_price || !card.manual_price_updated_at) return false
+
+  const updatedAt = new Date(card.manual_price_updated_at)
+  const now = new Date()
+
+  const days =
+    (now.getTime() - updatedAt.getTime()) /
+    (1000 * 60 * 60 * 24)
+
+  return days >= 30
+}
+
+function getDaysSinceUpdate(dateString: string) {
+  const updatedAt = new Date(dateString)
+  const now = new Date()
+
+  return Math.floor(
+    (now.getTime() - updatedAt.getTime()) /
+      (1000 * 60 * 60 * 24)
+  )
+}
 
   const cardsPerPage = 16
 
@@ -839,10 +886,21 @@ function getDaysSinceManualPriceUpdate(card: Card) {
                     setSelectedCard(card)
                     setIsEditing(false)
                   }}
-                  className="group relative cursor-pointer rounded-3xl border border-slate-800 bg-slate-900/70 p-5 shadow-xl transition hover:scale-[1.02] hover:border-yellow-400"
+                  className={`group relative cursor-pointer rounded-3xl border bg-slate-900/70 p-5 shadow-xl transition hover:scale-[1.02] hover:border-yellow-400 ${
+                  needsPriceReview(card)
+                    ? 'border-yellow-500'
+                    : 'border-slate-800'
+                }`}
                 >
                   {getCollectionImageUrl(card.image_url) ? (
                     <>
+                      
+                      {needsPriceReview(card) && (
+                      <div className="absolute left-3 top-3 z-10 rounded-full bg-yellow-400 px-2 py-1 text-xs font-bold text-slate-950 shadow-lg">
+                        ⚠ Revisar
+                      </div>
+                    )}
+                      
                       <div className="absolute right-3 top-3 z-10 rounded-full bg-slate-950/80 px-2 py-1 text-sm shadow-lg backdrop-blur">
                         {getLanguageFlag(card.language || '')}
                       </div>
@@ -890,9 +948,21 @@ function getDaysSinceManualPriceUpdate(card: Card) {
                   </div>
 
                   <div className="mt-5 rounded-2xl bg-slate-950 p-4">
-                    <p className="text-sm text-slate-400">
-  {card.manual_price ? `Preço manual (${card.manual_price_currency || 'BRL'})` : 'Preço automático'}
-</p>
+                    <div className="flex items-center justify-between gap-2">
+  <p className="text-sm text-slate-400">
+    {card.manual_price ? `Preço manual (${card.manual_price_currency || 'BRL'})` : 'Preço automático'}
+  </p>
+
+  <span
+    className={`rounded-full px-2 py-1 text-xs font-semibold ${
+      card.manual_price
+        ? 'bg-yellow-400 text-slate-950'
+        : 'bg-blue-500 text-white'
+    }`}
+  >
+    {card.manual_price ? 'Manual' : 'Auto'}
+  </span>
+</div>
 
                     <p className="mt-1 text-2xl font-bold text-yellow-400">
                       {card.manual_price
@@ -904,7 +974,14 @@ function getDaysSinceManualPriceUpdate(card: Card) {
                     {selectedCard?.manual_price_updated_at ? (
   <p className="mt-2 text-sm text-slate-400">
     Atualizado em{' '}
-    {new Date(selectedCard.manual_price_updated_at).toLocaleDateString('pt-BR')}
+    {new Date(
+      selectedCard.manual_price_updated_at
+    ).toLocaleDateString('pt-BR')}
+    {' • há '}
+    {getDaysSinceUpdate(
+      selectedCard.manual_price_updated_at
+    )}{' '}
+    dias
   </p>
 ) : null}
                   </div>
