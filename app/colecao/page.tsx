@@ -17,6 +17,7 @@ type Card = {
   set_name?: string
   card_number?: string
   rarity?: string
+  illustrator?: string
   auto_price?: number | null
   api_card_id?: string | null
   binder_page?: number | null
@@ -73,6 +74,7 @@ export default function ColecaoPage() {
   const [editSetName, setEditSetName] = useState('')
   const [editCardNumber, setEditCardNumber] = useState('')
   const [editRarity, setEditRarity] = useState('')
+  const [editIllustrator, setEditIllustrator] = useState('')
 
   const [isPlacingInBinder, setIsPlacingInBinder] = useState(false)
   const [targetBinderPage, setTargetBinderPage] = useState(1)
@@ -177,6 +179,7 @@ const { data, error } = await supabase
     setEditSetName(card.set_name || '')
     setEditCardNumber(card.card_number || '')
     setEditRarity(card.rarity || '')
+    setEditIllustrator(card.illustrator || '')
     setEditLanguage(card.language || 'Português')
     setEditCondition(card.condition || 'NM')
     setEditVariant(card.variant || 'Todas')
@@ -208,6 +211,7 @@ const updateData = {
   set_name: editSetName || undefined,
   card_number: editCardNumber || undefined,
   rarity: editRarity || undefined,
+  illustrator: editIllustrator || undefined,
 
   language: editLanguage,
   condition: editCondition,
@@ -236,6 +240,7 @@ const updateData = {
 set_name: editSetName || undefined,
 card_number: editCardNumber || undefined,
 rarity: editRarity || undefined,
+illustrator: editIllustrator || undefined,
       language: editLanguage,
       condition: editCondition,
       variant: editVariant,
@@ -1100,6 +1105,7 @@ function getDaysSinceManualPriceUpdate(card: Card) {
                   <p><strong>Condição:</strong> {selectedCard.condition}</p>
                   <p><strong>Variante:</strong> {selectedCard.variant}</p>
                   <p><strong>Raridade:</strong> {selectedCard.rarity || '—'}</p>
+                  <p><strong>Ilustrador:</strong> {selectedCard.illustrator || '—'}</p>
                   <p><strong>Número:</strong> {selectedCard.card_number || '—'}</p>
                   <p><strong>Quantidade:</strong> {selectedCard.quantity}</p>
                 </div>
@@ -1207,6 +1213,16 @@ function getDaysSinceManualPriceUpdate(card: Card) {
                     />
                   </div>
 
+                  <div>
+                    <label className="mb-2 block text-sm">Ilustrador</label>
+                    <input
+                      type="text"
+                      value={editIllustrator}
+                      onChange={(event) => setEditIllustrator(event.target.value)}
+                      className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                    />
+                  </div>
+                                  
                   <div>
                     <label className="mb-2 block text-sm">Raridade</label>
                     <input
