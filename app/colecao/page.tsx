@@ -459,9 +459,12 @@ illustrator: editIllustrator || undefined,
 }
 
   const filteredCards = cards.filter((card) => {
-    const matchesSearch =
-      card.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      card.set_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    const search = searchTerm.toLowerCase()
+
+const matchesSearch =
+  card.name.toLowerCase().includes(search) ||
+  card.set_name?.toLowerCase().includes(search) ||
+  card.illustrator?.toLowerCase().includes(search)
 
     const matchesLanguage =
       languageFilter === 'Todos' || card.language === languageFilter
