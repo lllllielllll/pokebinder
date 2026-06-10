@@ -93,6 +93,8 @@ export default function ColecaoPage() {
   const [exchangeUpdatedAt, setExchangeUpdatedAt] = useState('')
   const [showPriceReviewPanel, setShowPriceReviewPanel] = useState(false)
 
+  const [uploadingImage, setUploadingImage] = useState(false)
+
   useEffect(() => {
     async function fetchCards() {
     
@@ -406,6 +408,35 @@ rarity: editRarity || undefined,
 
     setDraggedCardId(null)
   }
+
+  async function uploadCardImage(file: File) {
+  if (!selectedCard) return
+
+  setUploadingImage(true)
+
+  const fileExtension = file.name.split('.').pop()
+  const fileName = `${selectedCard.id}-${Date.now()}.${fileExtension}`
+  const filePath = `cards/${fileName}`
+
+  const { error } = await supabase.storage
+    .from('card-images')
+    .upload(filePath, file, {
+      upsert: true,
+    })
+
+  if (error) {
+    alert(`Erro ao enviar imagem: ${error.message}`)
+    setUploadingImage(false)
+    return
+  }
+
+  const { data } = supabase.storage
+    .from('card-images')
+    .getPublicUrl(filePath)
+
+  setEditImageUrl(data.publicUrl)
+  setUploadingImage(false)
+}
 
   function getCollectionImageUrl(imageUrl?: string | null) {
   if (!imageUrl) return null
@@ -1124,16 +1155,30 @@ function getDaysSinceManualPriceUpdate(card: Card) {
                   </label>
 
                   <input
-                    type="file"
-                    accept="image/*"
-                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-                  />
-                </div>
-                  
-                  <div>
-                    <label className="mb-2 block text-sm">
-                      URL da imagem
-                      </label>
+
+                  type="file"
+                  accept="image/*"
+                  disabled={uploadingImage}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    if (file) {
+                      uploadCardImage(file)
+                    }
+                  }}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                />
+
+                {uploadingImage && (
+                <p className="mt-2 text-sm text-yellow-300">
+                  Enviando imagem...
+                </p>
+              )}
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm">
+                  URL da imagem
+                </label>
                     <input
                       type="text"
                       value={editImageUrl}
