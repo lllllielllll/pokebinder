@@ -966,6 +966,11 @@ function getDaysSinceManualPriceUpdate(card: Card) {
                   <p className="text-sm text-slate-400">
                     Nº {card.card_number || '—'} · {card.rarity || 'Sem raridade'}
                   </p>
+                  {card.illustrator && (
+                  <p className="text-sm text-slate-500">
+                    🎨 {card.illustrator}
+                  </p>
+                )}
 
                   <div className="mt-4 flex flex-wrap gap-2">
                     <span className="rounded-full bg-slate-800 px-3 py-1 text-xs">
@@ -1159,9 +1164,9 @@ function getDaysSinceManualPriceUpdate(card: Card) {
                   </div>
 
                 <div>
-                  <label className="mb-2 block text-sm">
-                    Upload de imagem
-                  </label>
+                  <label className="mb-2 block text-sm font-semibold">
+                  📤 Nova imagem da carta
+                </label>
 
                   <input
 
@@ -1182,19 +1187,21 @@ function getDaysSinceManualPriceUpdate(card: Card) {
                   Enviando imagem...
                 </p>
               )}
-              </div>
 
-              <div>
-                <label className="mb-2 block text-sm">
-                  URL da imagem
-                </label>
-                    <input
-                      type="text"
-                      value={editImageUrl}
-                      onChange={(event) => setEditImageUrl(event.target.value)}
-                      className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-                    />
-                  </div>
+              {editImageUrl && !uploadingImage && (
+  <div className="mt-3">
+    <img
+      src={editImageUrl}
+      alt="Preview"
+      className="max-h-40 rounded-xl border border-slate-700"
+    />
+
+    <p className="mt-2 text-xs text-green-400">
+      ✓ Imagem pronta para salvar
+    </p>
+  </div>
+)}
+              </div>
 
                   <div>
                     <label className="mb-2 block text-sm">Coleção / Set</label>
