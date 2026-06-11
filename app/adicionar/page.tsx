@@ -11,6 +11,8 @@ type Binder = {
 }
 
 type ApiCard = {
+  illustrator?: string
+  source?: 'catalog' | 'api'
   id: string
   name: string
   localId?: string
@@ -155,6 +157,35 @@ export default function AdicionarCartaPage() {
     return `${image}/high.webp`
   }
 
+  async function searchCardCatalog() {
+  const cleanName = name.trim()
+
+  const { data, error } = await supabase
+    .from('card_catalog')
+    .select('*')
+    .ilike('name', `%${cleanName}%`)
+    .limit(100)
+
+  if (error) {
+    console.log('Erro ao buscar no catálogo:', error.message)
+    return []
+  }
+
+  return (data || []).map((card) => ({
+    id: card.id,
+    name: card.name,
+    number: card.card_number || undefined,
+    localId: card.card_number || undefined,
+    image: card.image_url || undefined,
+    rarity: card.rarity || undefined,
+    illustrator: card.illustrator || undefined,
+    source: 'catalog' as const,
+    set: {
+      name: card.set_name || undefined,
+    },
+  }))
+}
+ 
   async function searchPokemonTcgApi() {
   const cleanName = name.trim()
 
@@ -262,13 +293,14 @@ return {
     setResults([])
 
     try {
-      const pokemonApiCards =
-  await searchPokemonTcgApi()
+      const catalogCards = await searchCardCatalog()
 
-const tcgdexCards =
-  await searchTcgdexFallback()
+const pokemonApiCards = await searchPokemonTcgApi()
+
+const tcgdexCards = await searchTcgdexFallback()
 
 const mergedCards = [
+  ...catalogCards,
   ...pokemonApiCards,
   ...tcgdexCards,
 ]
@@ -387,7 +419,14 @@ if (!user) {
   ? manualRarity || null
   : selectedCard!.rarity || null,
 
-        auto_price: manualMode ? null : getAutoPrice(selectedCard),
+        illustrator: manualMode
+  ? null
+  : selectedCard!.illustrator || null,
+
+       auto_price:
+  manualMode || selectedCard?.source === 'catalog'
+    ? null
+    : getAutoPrice(selectedCard),
 
         auto_price_brl: manualPriceBrl
           ? Number(manualPriceBrl)
@@ -402,7 +441,7 @@ if (!user) {
         binder_slot: selectedBinderId ? binderSlot : null,
 
         api_card_id:
-  !manualMode && selectedCard?.images
+  !manualMode && selectedCard?.source !== 'catalog' && selectedCard?.images
     ? selectedCard.id
     : null,
 
@@ -801,6 +840,12 @@ setManualImageUrl('')
                   <h2 className="text-xl font-bold">
                     {card.name}
                   </h2>
+
+                  {card.source === 'catalog' && (
+                    <p className="mt-1 inline-block rounded-full bg-green-500 px-2 py-1 text-xs font-semibold text-white">
+                      Banco PokéBinder
+                    </p>
+                  )}
 
                   <p className="mt-2 text-sm text-slate-400">
                     {card.set?.name}
