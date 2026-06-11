@@ -15,6 +15,11 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: 'PokéBinder',
   description: 'Minha coleção Pokémon TCG',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/icon.png',
+  },
 };
 
 export default function RootLayout({
