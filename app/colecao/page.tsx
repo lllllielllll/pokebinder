@@ -228,6 +228,41 @@ const updateData = {
   .update(updateData)
   .eq('id', selectedCard.id)
 
+  await supabase
+  .from('card_catalog')
+  .upsert(
+    {
+      name: editName,
+      image_url: editImageUrl || null,
+      set_name: editSetName || null,
+      card_number: editCardNumber || null,
+      rarity: editRarity || null,
+      illustrator: editIllustrator || null,
+      language: editLanguage,
+      variant: editVariant,
+      api_card_id: selectedCard.api_card_id || null,
+      updated_at: new Date().toISOString(),
+    },
+    {
+      onConflict: 'name,set_name,card_number,language',
+    }
+  )
+
+  await supabase
+  .from('card_catalog')
+  .update({
+    name: editName,
+    image_url: editImageUrl || null,
+    set_name: editSetName || null,
+    card_number: editCardNumber || null,
+    rarity: editRarity || null,
+    illustrator: editIllustrator || null,
+    language: editLanguage,
+    variant: editVariant,
+  })
+  .eq('name', selectedCard.name)
+  .eq('set_name', selectedCard.set_name || '')
+
     if (error) {
       alert(`Erro ao editar: ${error.message}`)
       return
