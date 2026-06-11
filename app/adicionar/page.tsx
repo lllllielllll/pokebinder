@@ -396,78 +396,116 @@ if (!user) {
   return
 }
 
-    const { error } = await supabase
-      .from('cards')
-      .insert({
-        name: manualMode ? manualName : selectedCard!.name,
-        language,
-        condition,
-        quantity,
-        variant,
+const cardToSave = {
+  name: manualMode ? manualName : selectedCard!.name,
+  image_url: manualImageUrl || getImageUrl(selectedCard),
 
-        image_url: manualImageUrl || getImageUrl(selectedCard),
+  set_name: manualMode
+    ? manualSetName || null
+    : selectedCard!.set?.name || null,
 
-        set_name: manualMode
-  ? manualSetName || null
-  : selectedCard!.set?.name || null,
+  card_number: manualMode
+    ? manualCardNumber || null
+    : selectedCard!.number || selectedCard!.localId || null,
 
-        card_number: manualMode
-  ? manualCardNumber || null
-  : selectedCard!.number || selectedCard!.localId || null,
+  rarity: manualMode
+    ? manualRarity || null
+    : selectedCard!.rarity || null,
 
-        rarity: manualMode
-  ? manualRarity || null
-  : selectedCard!.rarity || null,
-
-        illustrator: manualMode
-  ? null
-  : selectedCard!.illustrator || null,
-
-       auto_price:
-  manualMode || selectedCard?.source === 'catalog'
+  illustrator: manualMode
     ? null
-    : getAutoPrice(selectedCard),
+    : selectedCard!.illustrator || null,
 
-        auto_price_brl: manualPriceBrl
-          ? Number(manualPriceBrl)
-          : null,
-        price_provider: null,
-        price_url: null,
-        price_updated_at: null,
-        user_id: user.id,
+  language,
+  variant,
+  api_card_id:
+    !manualMode && selectedCard?.source !== 'catalog' && selectedCard?.images
+      ? selectedCard.id
+      : null,
 
-        binder_id: selectedBinderId || null,
-        binder_page: selectedBinderId ? binderPage : null,
-        binder_slot: selectedBinderId ? binderSlot : null,
+  tcgdex_id:
+    !manualMode && !selectedCard?.images && selectedCard?.source !== 'catalog'
+      ? selectedCard?.id || null
+      : null,
+}    
 
-        api_card_id:
-  !manualMode && selectedCard?.source !== 'catalog' && selectedCard?.images
-    ? selectedCard.id
-    : null,
+const { error } = await supabase
+  .from('cards')
+  .insert({
+    name: cardToSave.name,
+    language: cardToSave.language,
+    condition,
+    quantity,
+    variant: cardToSave.variant,
 
-tcgdex_id:
-  !manualMode && !selectedCard?.images
-    ? selectedCard?.id || null
-    : null,
+    image_url: cardToSave.image_url,
 
-tcgdex_local_id:
-  !manualMode
-    ? selectedCard?.localId || null
-    : null,
+    set_name: cardToSave.set_name,
+    card_number: cardToSave.card_number,
+    rarity: cardToSave.rarity,
+    illustrator: cardToSave.illustrator,
 
-tcgdex_set_id:
-  !manualMode
-    ? selectedCard?.set?.id || null
-    : null,
+    auto_price:
+      manualMode || selectedCard?.source === 'catalog'
+        ? null
+        : getAutoPrice(selectedCard),
 
-        card_language_code: getLanguageCode(language),
-      })
+    auto_price_brl: manualPriceBrl
+      ? Number(manualPriceBrl)
+      : null,
+
+    price_provider: null,
+    price_url: null,
+    price_updated_at: null,
+    user_id: user.id,
+
+    binder_id: selectedBinderId || null,
+    binder_page: selectedBinderId ? binderPage : null,
+    binder_slot: selectedBinderId ? binderSlot : null,
+
+    api_card_id: cardToSave.api_card_id,
+
+    tcgdex_id: cardToSave.tcgdex_id,
+
+    tcgdex_local_id:
+      !manualMode && selectedCard?.source !== 'catalog'
+        ? selectedCard?.localId || null
+        : null,
+
+    tcgdex_set_id:
+      !manualMode && selectedCard?.source !== 'catalog'
+        ? selectedCard?.set?.id || null
+        : null,
+
+    card_language_code: getLanguageCode(language),
+  })
 
     if (error) {
       setMessage(`Erro: ${error.message}`)
       setLoading(false)
       return
     }
+
+    await supabase
+  .from('card_catalog')
+  .upsert(
+    {
+      name: cardToSave.name,
+      image_url: cardToSave.image_url,
+      set_name: cardToSave.set_name,
+      card_number: cardToSave.card_number,
+      rarity: cardToSave.rarity,
+      illustrator: cardToSave.illustrator,
+      language: cardToSave.language,
+      variant: cardToSave.variant,
+      api_card_id: cardToSave.api_card_id,
+      tcgdex_id: cardToSave.tcgdex_id,
+      updated_at: new Date().toISOString(),
+    },
+    {
+      onConflict: 'name,set_name,card_number,language',
+    }
+  )
 
     setMessage('Carta salva com sucesso!')
     setName('')
