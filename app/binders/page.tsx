@@ -13,6 +13,7 @@ type Binder = {
   rows_count: number
   columns_count: number
   total_pages: number
+  cards_count?: number
 }
 
 export default function BindersPage() {
@@ -40,12 +41,20 @@ export default function BindersPage() {
       }
 
       const { data } = await supabase
-        .from('binders')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+  .from('binders')
+  .select(`
+    *,
+    cards_count:cards(count)
+  `)
+  .eq('user_id', user.id)
+  .order('created_at', { ascending: false })
 
-      setBinders(data || [])
+const bindersWithCount = (data || []).map((binder) => ({
+  ...binder,
+  cards_count: binder.cards_count?.[0]?.count || 0,
+}))
+
+setBinders(bindersWithCount)
     }
 
     loadBinders()
