@@ -19,6 +19,10 @@ type Binder = {
 export default function BindersPage() {
   const [binders, setBinders] = useState<Binder[]>([])
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [editingBinderId, setEditingBinderId] = useState<string | null>(null)
+  const [editBinderName, setEditBinderName] = useState('')
+  const [editBinderDescription, setEditBinderDescription] = useState('')
+  const [editCoverImageUrl, setEditCoverImageUrl] = useState('')
 
   const [binderName, setBinderName] = useState('Meu Binder')
   const [binderDescription, setBinderDescription] = useState('')
@@ -41,20 +45,20 @@ export default function BindersPage() {
       }
 
       const { data } = await supabase
-  .from('binders')
-  .select(`
-    *,
-    cards_count:cards(count)
-  `)
-  .eq('user_id', user.id)
-  .order('created_at', { ascending: false })
+        .from('binders')
+        .select(`
+          *,
+          cards_count:cards(count)
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
 
-const bindersWithCount = (data || []).map((binder) => ({
-  ...binder,
-  cards_count: binder.cards_count?.[0]?.count || 0,
-}))
+      const bindersWithCount = (data || []).map((binder) => ({
+        ...binder,
+        cards_count: binder.cards_count?.[0]?.count || 0,
+      }))
 
-setBinders(bindersWithCount)
+      setBinders(bindersWithCount)
     }
 
     loadBinders()
@@ -100,6 +104,75 @@ setBinders(bindersWithCount)
     setColumnsCount(3)
     setTotalPages(10)
     setPrimaryColor('#facc15')
+  }
+
+  function startEditingBinder(binder: Binder) {
+    setEditingBinderId(binder.id)
+    setEditBinderName(binder.name)
+    setEditBinderDescription(binder.description || '')
+    setEditCoverImageUrl(binder.cover_image_url || '')
+  }
+
+  async function saveBinderEdit(binderId: string) {
+    const { error } = await supabase
+      .from('binders')
+      .update({
+        name: editBinderName,
+        description: editBinderDescription || null,
+        cover_image_url: editCoverImageUrl || null,
+      })
+      .eq('id', binderId)
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
+    setBinders((current) =>
+      current.map((binder) =>
+        binder.id === binderId
+          ? {
+              ...binder,
+              name: editBinderName,
+              description: editBinderDescription || null,
+              cover_image_url: editCoverImageUrl || null,
+            }
+          : binder
+      )
+    )
+
+    setEditingBinderId(null)
+  }
+
+  async function deleteBinder(binderId: string) {
+    const confirmDelete = confirm(
+      'Tem certeza que deseja excluir este binder? As cartas não serão apagadas, apenas ficarão sem binder.'
+    )
+
+    if (!confirmDelete) return
+
+    await supabase
+      .from('cards')
+      .update({
+        binder_id: null,
+        binder_page: null,
+        binder_slot: null,
+      })
+      .eq('binder_id', binderId)
+
+    const { error } = await supabase
+      .from('binders')
+      .delete()
+      .eq('id', binderId)
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
+    setBinders((current) =>
+      current.filter((binder) => binder.id !== binderId)
+    )
   }
 
   return (
@@ -245,38 +318,111 @@ setBinders(bindersWithCount)
               </p>
 
               {(() => {
-  const totalSlots =
-    binder.rows_count *
-    binder.columns_count *
-    binder.total_pages
+                const totalSlots =
+                  binder.rows_count *
+                  binder.columns_count *
+                  binder.total_pages
 
-  const filledSlots = binder.cards_count || 0
+                const filledSlots = binder.cards_count || 0
 
-  const percent =
-    totalSlots > 0
-      ? Math.round((filledSlots / totalSlots) * 100)
-      : 0
+                const percent =
+                  totalSlots > 0
+                    ? Math.round((filledSlots / totalSlots) * 100)
+                    : 0
 
-  return (
-    <div className="mt-4">
-      <p className="text-sm text-slate-300">
-        {filledSlots} / {totalSlots} slots preenchidos
-      </p>
+                return (
+                  <div className="mt-4">
+                    <p className="text-sm text-slate-300">
+                      {filledSlots} / {totalSlots} slots preenchidos
+                    </p>
 
-      <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-800">
-        <div
-          className="h-full rounded-full bg-yellow-400"
-          style={{ width: `${percent}%` }}
-        />
-      </div>
+                    <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-800">
+                      <div
+                        className="h-full rounded-full bg-yellow-400"
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
 
-      <p className="mt-1 text-xs text-slate-500">
-        {percent}% completo
-      </p>
-    </div>
-  )
-})()}
+                    <p className="mt-1 text-xs text-slate-500">
+                      {percent}% completo
+                    </p>
+                  </div>
+                )
+              })()}
 
+              <div className="mt-5 flex gap-3">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.preventDefault()
+                    startEditingBinder(binder)
+                  }}
+                  className="rounded-full bg-slate-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-600"
+                >
+                  Editar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.preventDefault()
+                    deleteBinder(binder.id)
+                  }}
+                  className="rounded-full bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-400"
+                >
+                  Excluir
+                </button>
+              </div>
+
+              {editingBinderId === binder.id && (
+                <div className="mt-5 space-y-3 rounded-2xl bg-slate-950 p-4">
+                  <input
+                    value={editBinderName}
+                    onChange={(e) => setEditBinderName(e.target.value)}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2"
+                  />
+
+                  <textarea
+                    value={editBinderDescription}
+                    onChange={(e) =>
+                      setEditBinderDescription(e.target.value)
+                    }
+                    placeholder="Descrição"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2"
+                  />
+
+                  <input
+                    value={editCoverImageUrl}
+                    onChange={(e) => setEditCoverImageUrl(e.target.value)}
+                    placeholder="URL da capa"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2"
+                  />
+
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.preventDefault()
+                        saveBinderEdit(binder.id)
+                      }}
+                      className="rounded-full bg-yellow-400 px-4 py-2 text-sm font-semibold text-slate-950"
+                    >
+                      Salvar
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.preventDefault()
+                        setEditingBinderId(null)
+                      }}
+                      className="rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-white"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </Link>
         ))}
