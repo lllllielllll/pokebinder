@@ -7,6 +7,9 @@ import Link from 'next/link'
 type Binder = {
   id: string
   name: string
+  description: string | null
+  cover_image_url: string | null
+
   primary_color: string
   rows_count: number
   columns_count: number
@@ -20,6 +23,12 @@ const [showCreateForm, setShowCreateForm] = useState(false)
 
 const [binderName, setBinderName] =
   useState('Meu Binder')
+
+const [binderDescription, setBinderDescription] =
+  useState('')
+
+const [coverImageUrl, setCoverImageUrl] =
+  useState('')
 
 const [rowsCount, setRowsCount] =
   useState(3)
@@ -79,6 +88,8 @@ async function createBinder() {
       columns_count: columnsCount,
       total_pages: totalPages,
       primary_color: primaryColor,
+      description: binderDescription,
+      cover_image_url: coverImageUrl,
     })
     .select()
     .single()
@@ -128,6 +139,24 @@ async function createBinder() {
         placeholder="Nome do Binder"
         className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
       />
+
+      <textarea
+  value={binderDescription}
+  onChange={(e) =>
+    setBinderDescription(e.target.value)
+  }
+  placeholder="Descrição do binder"
+  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
+/>
+
+<input
+  value={coverImageUrl}
+  onChange={(e) =>
+    setCoverImageUrl(e.target.value)
+  }
+  placeholder="URL da capa"
+  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
+/>
 
       <input
         type="number"
@@ -196,6 +225,15 @@ async function createBinder() {
             >
             <h2 className="text-2xl font-bold">
               {binder.name}
+
+              {binder.cover_image_url && (
+  <img
+    src={binder.cover_image_url}
+    alt={binder.name}
+    className="mb-4 h-48 w-full rounded-2xl object-cover"
+  />
+)}
+
             </h2>
 
             <p className="mt-3 text-slate-400">
