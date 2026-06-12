@@ -243,6 +243,40 @@ setBinders(bindersWithCount)
                   binder.columns_count *
                   binder.total_pages}
               </p>
+
+              {(() => {
+  const totalSlots =
+    binder.rows_count *
+    binder.columns_count *
+    binder.total_pages
+
+  const filledSlots = binder.cards_count || 0
+
+  const percent =
+    totalSlots > 0
+      ? Math.round((filledSlots / totalSlots) * 100)
+      : 0
+
+  return (
+    <div className="mt-4">
+      <p className="text-sm text-slate-300">
+        {filledSlots} / {totalSlots} slots preenchidos
+      </p>
+
+      <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-800">
+        <div
+          className="h-full rounded-full bg-yellow-400"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+
+      <p className="mt-1 text-xs text-slate-500">
+        {percent}% completo
+      </p>
+    </div>
+  )
+})()}
+
             </div>
           </Link>
         ))}
