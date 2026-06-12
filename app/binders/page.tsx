@@ -45,9 +45,14 @@ const [primaryColor, setPrimaryColor] =
     }
 
     const { data, error } = await supabase
-      .from('binders')
-      .select('*')
-      .eq('user_id', user.id)
+
+  .from('binders')
+
+  .select('*')
+
+  .eq('user_id', user.id)
+
+  .order('created_at', { ascending: false })
 
     setBinders(data || [])
   }
@@ -85,7 +90,12 @@ async function createBinder() {
 
   setBinders([data, ...binders])
   setShowCreateForm(false)
-}
+  setBinderName('Meu Binder')
+  setRowsCount(3)
+  setColumnsCount(3)
+  setTotalPages(10)
+  setPrimaryColor('#facc15')
+  }
 
   return (
     <main className="min-h-screen bg-slate-950 p-8 text-white">
@@ -163,6 +173,14 @@ async function createBinder() {
   className="rounded-full bg-green-500 px-6 py-3 font-semibold"
 >
   Criar Binder
+</button>
+
+<button
+  type="button"
+  onClick={() => setShowCreateForm(false)}
+  className="ml-3 rounded-full border border-slate-700 px-6 py-3 font-semibold text-white hover:border-slate-400"
+>
+  Cancelar
 </button>
 
     </div>
