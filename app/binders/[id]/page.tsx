@@ -21,7 +21,7 @@ type Card = {
   binder_slot?: number | null
 }
 
-export default function BinderDetailPage() {
+export default function BinderDetailPage() {}
   const params = useParams()
   const binderId = params.id as string
   const [binder, setBinder] = useState<Binder | null>(null)
@@ -107,6 +107,53 @@ async function addCardToSlot(cardId: string) {
     .eq('binder_page', currentPage)
 
   setCards(binderCards || [])
+
+async function addCardToSlot(cardId: string) {
+  if (!selectedSlot) return
+
+  const { error } = await supabase
+    .from('cards')
+    .update({
+      binder_id: binderId,
+      binder_page: currentPage,
+      binder_slot: selectedSlot,
+    })
+    .eq('id', cardId)
+
+  if (error) {
+    alert(error.message)
+    return
+  }
+
+  setSelectedSlot(null)
+
+  const { data: binderCards } = await supabase
+    .from('cards')
+    .select('id, name, image_url, binder_page, binder_slot')
+    .eq('binder_id', binderId)
+    .eq('binder_page', currentPage)
+
+  setCards(binderCards || [])
+}
+
+async function removeCardFromSlot(cardId: string) {
+  const { error } = await supabase
+    .from('cards')
+    .update({
+      binder_id: null,
+      binder_page: null,
+      binder_slot: null,
+    })
+    .eq('id', cardId)
+
+  if (error) {
+    alert(error.message)
+    return
+  }
+
+  setCards((current) =>
+    current.filter((card) => card.id !== cardId)
+  )
 }
   if (!binder) {
     return (
@@ -170,8 +217,16 @@ async function addCardToSlot(cardId: string) {
                   )}
 
                   <div className="p-2 text-center text-sm">
-                    {card.name}
-                  </div>
+  {card.name}
+</div>
+
+<button
+  type="button"
+  onClick={() => removeCardFromSlot(card.id)}
+  className="mx-auto mb-3 block rounded-full bg-red-500 px-3 py-1 text-xs font-semibold text-white hover:bg-red-400"
+>
+  Remover do binder
+</button>
                 </div>
               ) : (
                 <button
@@ -208,51 +263,51 @@ async function addCardToSlot(cardId: string) {
           Próxima página
         </button>
       </div>
-    {selectedSlot && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6">
-    <div className="max-h-[80vh] w-full max-w-3xl overflow-auto rounded-3xl border border-slate-800 bg-slate-950 p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-2xl font-bold">
-          Escolher carta para o slot {selectedSlot}
-        </h2>
+          {selectedSlot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6">
+          <div className="max-h-[80vh] w-full max-w-3xl overflow-auto rounded-3xl border border-slate-800 bg-slate-950 p-6">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold">
+                Escolher carta para o slot {selectedSlot}
+              </h2>
 
-        <button
-          type="button"
-          onClick={() => setSelectedSlot(null)}
-          className="rounded-full border border-slate-700 px-4 py-2"
-        >
-          Fechar
-        </button>
-      </div>
+              <button
+                type="button"
+                onClick={() => setSelectedSlot(null)}
+                className="rounded-full border border-slate-700 px-4 py-2"
+              >
+                Fechar
+              </button>
+            </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {collectionCards.map((card) => (
-          <button
-            key={card.id}
-            type="button"
-            onClick={() => addCardToSlot(card.id)}
-            className="rounded-2xl border border-slate-800 bg-slate-900 p-4 text-left hover:border-yellow-400"
-          >
-            {card.image_url && (
-  <img
-    src={card.image_url || ''}
-    alt={card.name}
-    onError={(event) => {
-      event.currentTarget.style.display = 'none'
-    }}
-    className="mb-3 w-28 rounded-xl"
-  />
-)}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {collectionCards.map((card) => (
+                <button
+                  key={card.id}
+                  type="button"
+                  onClick={() => addCardToSlot(card.id)}
+                  className="rounded-2xl border border-slate-800 bg-slate-900 p-4 text-left hover:border-yellow-400"
+                >
+                  {card.image_url && (
+                    <img
+                      src={card.image_url || ''}
+                      alt={card.name}
+                      onError={(event) => {
+                        event.currentTarget.style.display = 'none'
+                      }}
+                      className="mb-3 w-28 rounded-xl"
+                    />
+                  )}
 
-            <p className="font-semibold">
-              {card.name}
-            </p>
-          </button>
-        ))}
-      </div>
-    </div>
-  </div>
-)}
+                  <p className="font-semibold">
+                    {card.name}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
