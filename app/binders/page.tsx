@@ -20,6 +20,7 @@ export default function BindersPage() {
   const [binders, setBinders] = useState<Binder[]>([])
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingBinderId, setEditingBinderId] = useState<string | null>(null)
+
   const [editBinderName, setEditBinderName] = useState('')
   const [editBinderDescription, setEditBinderDescription] = useState('')
   const [editCoverImageUrl, setEditCoverImageUrl] = useState('')
@@ -32,6 +33,9 @@ export default function BindersPage() {
   const [columnsCount, setColumnsCount] = useState(3)
   const [totalPages, setTotalPages] = useState(10)
   const [primaryColor, setPrimaryColor] = useState('#facc15')
+
+  const [uploadingCover, setUploadingCover] = useState(false)
+  const [uploadingEditCover, setUploadingEditCover] = useState(false)
 
   useEffect(() => {
     async function loadBinders() {
@@ -63,6 +67,52 @@ export default function BindersPage() {
 
     loadBinders()
   }, [])
+
+  async function uploadBinderCover(file: File, mode: 'create' | 'edit') {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      window.location.href = '/login'
+      return
+    }
+
+    if (mode === 'create') {
+      setUploadingCover(true)
+    } else {
+      setUploadingEditCover(true)
+    }
+
+    const fileExtension = file.name.split('.').pop()
+    const fileName = `${user.id}-${Date.now()}.${fileExtension}`
+    const filePath = `covers/${fileName}`
+
+    const { error } = await supabase.storage
+      .from('binder-covers')
+      .upload(filePath, file, {
+        upsert: true,
+      })
+
+    if (error) {
+      alert(`Erro ao enviar capa: ${error.message}`)
+      setUploadingCover(false)
+      setUploadingEditCover(false)
+      return
+    }
+
+    const { data } = supabase.storage
+      .from('binder-covers')
+      .getPublicUrl(filePath)
+
+    if (mode === 'create') {
+      setCoverImageUrl(data.publicUrl)
+      setUploadingCover(false)
+    } else {
+      setEditCoverImageUrl(data.publicUrl)
+      setUploadingEditCover(false)
+    }
+  }
 
   async function createBinder() {
     const {
@@ -211,12 +261,44 @@ export default function BindersPage() {
               className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
             />
 
-            <input
-              value={coverImageUrl}
-              onChange={(e) => setCoverImageUrl(e.target.value)}
-              placeholder="URL da capa"
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
-            />
+            <div>
+              <label className="mb-2 block text-sm font-semibold">
+                📤 Capa do binder
+              </label>
+
+              <input
+                type="file"
+                accept="image/*"
+                disabled={uploadingCover}
+                onChange={(event) => {
+                  const file = event.target.files?.[0]
+                  if (file) {
+                    uploadBinderCover(file, 'create')
+                  }
+                }}
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
+              />
+
+              {uploadingCover && (
+                <p className="mt-2 text-sm text-yellow-300">
+                  Enviando capa...
+                </p>
+              )}
+
+              {coverImageUrl && !uploadingCover && (
+                <div className="mt-3">
+                  <img
+                    src={coverImageUrl}
+                    alt="Preview da capa"
+                    className="h-40 w-full max-w-md rounded-2xl object-cover"
+                  />
+
+                  <p className="mt-2 text-xs text-green-400">
+                    ✓ Capa pronta para salvar
+                  </p>
+                </div>
+              )}
+            </div>
 
             <input
               type="number"
@@ -391,12 +473,44 @@ export default function BindersPage() {
                     className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2"
                   />
 
-                  <input
-                    value={editCoverImageUrl}
-                    onChange={(e) => setEditCoverImageUrl(e.target.value)}
-                    placeholder="URL da capa"
-                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2"
-                  />
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold">
+                      📤 Nova capa
+                    </label>
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={uploadingEditCover}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0]
+                        if (file) {
+                          uploadBinderCover(file, 'edit')
+                        }
+                      }}
+                      className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2"
+                    />
+
+                    {uploadingEditCover && (
+                      <p className="mt-2 text-sm text-yellow-300">
+                        Enviando nova capa...
+                      </p>
+                    )}
+
+                    {editCoverImageUrl && !uploadingEditCover && (
+                      <div className="mt-3">
+                        <img
+                          src={editCoverImageUrl}
+                          alt="Preview da nova capa"
+                          className="h-32 w-full rounded-2xl object-cover"
+                        />
+
+                        <p className="mt-2 text-xs text-green-400">
+                          ✓ Nova capa pronta para salvar
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="flex gap-3">
                     <button
