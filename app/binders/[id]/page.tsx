@@ -21,7 +21,7 @@ type Card = {
   binder_slot?: number | null
 }
 
-export default function BinderDetailPage() {}
+export default function BinderDetailPage() {
   const params = useParams()
   const binderId = params.id as string
   const [binder, setBinder] = useState<Binder | null>(null)
@@ -310,4 +310,5 @@ async function removeCardFromSlot(cardId: string) {
       )}
     </main>
   )
+}
 }

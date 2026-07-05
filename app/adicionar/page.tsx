@@ -11,22 +11,37 @@ type Binder = {
 }
 
 type ApiCard = {
-  illustrator?: string
-  source?: 'catalog' | 'api'
   id: string
   name: string
-  localId?: string
+  source?: 'catalog' | 'pokemonapi' | 'tcgdex'
+
   number?: string
+  localId?: string
+
   image?: string
+  image_url?: string | null
   images?: {
     small?: string
     large?: string
   }
-  rarity?: string
+
+  rarity?: string | null
+  illustrator?: string | null
+  artist?: string | null
+  illustrators?: string[]
+
+  card_type?: string | null
+  types?: string[]
+  hp?: string | number | null
+  stage?: string | null
+  category?: string | null
+
   set?: {
     id?: string
     name?: string
+    series?: string
   }
+
   tcgplayer?: {
     prices?: {
       normal?: { market?: number }
@@ -37,38 +52,11 @@ type ApiCard = {
 }
 
 export default function AdicionarCartaPage() {
- 
-   useEffect(() => {
-  async function checkUser() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      window.location.href = '/login'
-      return
-    }
-
-    const { data } = await supabase
-      .from('binders')
-      .select('id, name')
-      .eq('user_id', user.id)
-
-    setBinders(data || [])
-
-    if (data && data.length > 0) {
-      setSelectedBinderId(data[0].id)
-    }
-  }
-
-  checkUser()
-}, [])
-
   const [binders, setBinders] = useState<Binder[]>([])
   const [selectedBinderId, setSelectedBinderId] = useState('')
   const [binderPage, setBinderPage] = useState(1)
   const [binderSlot, setBinderSlot] = useState(1)
-  const [manualImageUrl, setManualImageUrl] = useState('')
+
   const [name, setName] = useState('')
   const [setFilter, setSetFilter] = useState('')
   const [numberFilter, setNumberFilter] = useState('')
@@ -78,7 +66,7 @@ export default function AdicionarCartaPage() {
   const [condition, setCondition] = useState('NM')
   const [quantity, setQuantity] = useState(1)
   const [manualPriceBrl, setManualPriceBrl] = useState('')
-  const [variant, setVariant] = useState('Todas')
+  const [variant, setVariant] = useState('Normal')
 
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
@@ -86,11 +74,45 @@ export default function AdicionarCartaPage() {
 
   const [results, setResults] = useState<ApiCard[]>([])
   const [selectedCard, setSelectedCard] = useState<ApiCard | null>(null)
+
   const [manualMode, setManualMode] = useState(false)
   const [manualName, setManualName] = useState('')
   const [manualSetName, setManualSetName] = useState('')
   const [manualCardNumber, setManualCardNumber] = useState('')
   const [manualRarity, setManualRarity] = useState('')
+  const [manualIllustrator, setManualIllustrator] = useState('')
+  const [manualCardType, setManualCardType] = useState('')
+  const [manualHp, setManualHp] = useState('')
+  const [manualStage, setManualStage] = useState('')
+
+  const [uploadedImageUrl, setUploadedImageUrl] = useState('')
+  const [uploadingImage, setUploadingImage] = useState(false)
+
+  useEffect(() => {
+    async function checkUser() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        window.location.href = '/login'
+        return
+      }
+
+      const { data } = await supabase
+        .from('binders')
+        .select('id, name')
+        .eq('user_id', user.id)
+
+      setBinders(data || [])
+
+      if (data && data.length > 0) {
+        setSelectedBinderId(data[0].id)
+      }
+    }
+
+    checkUser()
+  }, [])
 
   function getLanguageCode(language: string) {
     switch (language) {
@@ -123,21 +145,11 @@ export default function AdicionarCartaPage() {
     }
   }
 
-  function getAutoPrice(card: ApiCard | null) {
-    if (language !== 'Inglês') return null
-
-    return (
-      card?.tcgplayer?.prices?.holofoil?.market ||
-      card?.tcgplayer?.prices?.reverseHolofoil?.market ||
-      card?.tcgplayer?.prices?.normal?.market ||
-      null
-    )
-  }
-
   function getImageUrl(card: ApiCard | null) {
     if (!card) return null
 
     const image =
+      card.image_url ||
       card.images?.large ||
       card.images?.small ||
       card.image ||
@@ -157,129 +169,241 @@ export default function AdicionarCartaPage() {
     return `${image}/high.webp`
   }
 
-  async function searchCardCatalog() {
-  const cleanName = name.trim()
+  function getIllustrator(card: ApiCard | null) {
+    if (!card) return null
 
-  const { data, error } = await supabase
-    .from('card_catalog')
-    .select('*')
-    .ilike('name', `%${cleanName}%`)
-    .limit(100)
-
-  if (error) {
-    console.log('Erro ao buscar no catálogo:', error.message)
-    return []
+    return (
+      card.illustrator ||
+      card.artist ||
+      card.illustrators?.[0] ||
+      null
+    )
   }
 
-  return (data || []).map((card) => ({
-    id: card.id,
-    name: card.name,
-    number: card.card_number || undefined,
-    localId: card.card_number || undefined,
-    image: card.image_url || undefined,
-    rarity: card.rarity || undefined,
-    illustrator: card.illustrator || undefined,
-    source: 'catalog' as const,
-    set: {
-      name: card.set_name || undefined,
-    },
-  }))
-}
- 
+  function getCardType(card: ApiCard | null) {
+    if (!card) return null
+
+    return (
+      card.card_type ||
+      card.types?.join(', ') ||
+      card.category ||
+      null
+    )
+  }
+
+  function getHp(card: ApiCard | null) {
+    if (!card?.hp) return null
+    return String(card.hp)
+  }
+
+  function getStage(card: ApiCard | null) {
+    if (!card) return null
+    return card.stage || null
+  }
+
+  function getAutoPrice(card: ApiCard | null) {
+    if (language !== 'Inglês') return null
+
+    return (
+      card?.tcgplayer?.prices?.holofoil?.market ||
+      card?.tcgplayer?.prices?.reverseHolofoil?.market ||
+      card?.tcgplayer?.prices?.normal?.market ||
+      null
+    )
+  }
+
+  function detectVariant(card: ApiCard) {
+    const rarity = card.rarity?.toLowerCase() || ''
+    const name = card.name?.toLowerCase() || ''
+
+    if (rarity.includes('special illustration')) return 'Special Illustration Rare'
+    if (rarity.includes('illustration')) return 'Illustration Rare'
+    if (rarity.includes('hyper')) return 'Gold'
+    if (rarity.includes('secret')) return 'Alt Art'
+    if (rarity.includes('rainbow')) return 'Rainbow'
+    if (rarity.includes('ultra')) return 'Full Art'
+    if (rarity.includes('double rare')) return 'Double Rare'
+    if (rarity.includes('radiant')) return 'Radiant'
+    if (rarity.includes('amazing')) return 'Amazing Rare'
+    if (rarity.includes('ace spec')) return 'ACE SPEC'
+    if (rarity.includes('promo')) return 'Promo'
+    if (rarity.includes('holo')) return 'Holo'
+    if (name.includes(' ex')) return 'ex'
+    if (name.includes(' vmax')) return 'VMAX'
+    if (name.includes(' vstar')) return 'VSTAR'
+    if (name.includes(' v')) return 'V'
+
+    return 'Normal'
+  }
+
+  async function uploadCardImage(file: File) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      window.location.href = '/login'
+      return
+    }
+
+    setUploadingImage(true)
+
+    const fileExtension = file.name.split('.').pop()
+    const fileName = `${user.id}-${Date.now()}.${fileExtension}`
+    const filePath = `cards/${fileName}`
+
+    const { error } = await supabase.storage
+      .from('card-images')
+      .upload(filePath, file, {
+        upsert: true,
+      })
+
+    if (error) {
+      alert(`Erro ao enviar imagem: ${error.message}`)
+      setUploadingImage(false)
+      return
+    }
+
+    const { data } = supabase.storage
+      .from('card-images')
+      .getPublicUrl(filePath)
+
+    setUploadedImageUrl(data.publicUrl)
+    setUploadingImage(false)
+  }
+    async function searchCardCatalog() {
+    const cleanName = name.trim()
+
+    const { data, error } = await supabase
+      .from('card_catalog')
+      .select('*')
+      .ilike('name', `%${cleanName}%`)
+      .limit(100)
+
+    if (error) {
+      console.log('Erro ao buscar no catálogo:', error.message)
+      return []
+    }
+
+    return (data || []).map((card) => ({
+      id: card.id,
+      name: card.name,
+      number: card.card_number || undefined,
+      localId: card.card_number || undefined,
+      image_url: card.image_url || undefined,
+      rarity: card.rarity || undefined,
+      illustrator: card.illustrator || undefined,
+      card_type: card.card_type || undefined,
+      hp: card.hp || undefined,
+      stage: card.stage || undefined,
+      source: 'catalog' as const,
+      set: {
+        name: card.set_name || undefined,
+      },
+    }))
+  }
+
   async function searchPokemonTcgApi() {
-  const cleanName = name.trim()
+    const cleanName = name.trim()
 
-  const response = await fetch(
-    `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(
-      cleanName
-    )}*&pageSize=250`
-  )
-
-  const data = await response.json()
-
-  return data.data || []
-}
-
-  async function findApproximateImage(card: ApiCard) {
-  const cardNumber = String(card.number || card.localId || '')
-    .replace(/^0+/, '')
-    .toLowerCase()
-
-  if (!card.name || !cardNumber) return null
-
-  try {
     const response = await fetch(
       `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(
-        card.name
+        cleanName
       )}*&pageSize=250`
     )
 
     const data = await response.json()
-    const cards = data.data || []
 
-    const match = cards.find((apiCard: ApiCard) => {
-      const apiNumber = String(apiCard.number || apiCard.localId || '')
-        .replace(/^0+/, '')
-        .toLowerCase()
-
-      return apiNumber === cardNumber && apiCard.images?.large
-    })
-
-    return match?.images?.large || cards[0]?.images?.large || null
-  } catch {
-    return null
+    return (data.data || []).map((card: ApiCard) => ({
+      ...card,
+      source: 'pokemonapi' as const,
+      card_type: card.types?.join(', ') || card.card_type || null,
+      illustrator: card.artist || card.illustrator || null,
+      stage: card.stage || null,
+      hp: card.hp || null,
+    }))
   }
-}
 
-async function searchTcgdexFallback() {
-  const languageCode = getLanguageCode(language)
+  async function findApproximateImage(card: ApiCard) {
+    const cardNumber = String(card.number || card.localId || '')
+      .replace(/^0+/, '')
+      .toLowerCase()
 
-  const response = await fetch(
-  `https://api.tcgdex.net/v2/en/cards`
-)
+    if (!card.name || !cardNumber) return null
 
-  const allCards = await response.json()
+    try {
+      const response = await fetch(
+        `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(
+          card.name
+        )}*&pageSize=250`
+      )
 
-  const matchingCards = allCards
-    .filter((card: ApiCard) =>
-      card.name?.toLowerCase().includes(name.toLowerCase())
+      const data = await response.json()
+      const cards = data.data || []
+
+      const match = cards.find((apiCard: ApiCard) => {
+        const apiNumber = String(apiCard.number || apiCard.localId || '')
+          .replace(/^0+/, '')
+          .toLowerCase()
+
+        return apiNumber === cardNumber && apiCard.images?.large
+      })
+
+      return match?.images?.large || cards[0]?.images?.large || null
+    } catch {
+      return null
+    }
+  }
+
+  async function searchTcgdexFallback() {
+    const languageCode = getLanguageCode(language)
+
+    const response = await fetch(
+      'https://api.tcgdex.net/v2/en/cards'
     )
-    .slice(0, 40)
 
-  const detailedCards = await Promise.all(
-    matchingCards.map(async (card: ApiCard) => {
-      const detailResponse = await fetch(
-        `https://api.tcgdex.net/v2/${languageCode}/cards/${card.id}`
+    const allCards = await response.json()
+
+    const matchingCards = allCards
+      .filter((card: ApiCard) =>
+        card.name?.toLowerCase().includes(name.toLowerCase())
       )
+      .slice(0, 40)
 
-      const detail = await detailResponse.json()
+    const detailedCards = await Promise.all(
+      matchingCards.map(async (card: ApiCard) => {
+        const detailResponse = await fetch(
+          `https://api.tcgdex.net/v2/${languageCode}/cards/${card.id}`
+        )
 
-      if (detail.image) return detail
+        const detail = await detailResponse.json()
 
-const approximateImage = await findApproximateImage(detail)
+        const approximateImage = detail.image
+          ? detail.image
+          : await findApproximateImage(detail)
 
-return {
-  ...detail,
-  image: approximateImage || detail.image,
-}
+        return {
+          ...detail,
+          image: approximateImage || detail.image,
+          source: 'tcgdex' as const,
+          illustrator:
+            detail.illustrator ||
+            detail.illustrators?.[0] ||
+            detail.artist ||
+            null,
+          card_type:
+            detail.card_type ||
+            detail.category ||
+            detail.types?.join(', ') ||
+            null,
+          hp: detail.hp || null,
+          stage: detail.stage || null,
+        }
+      })
+    )
 
-      const englishResponse = await fetch(
-        `https://api.tcgdex.net/v2/en/cards/${card.id}`
-      )
-
-      if (!englishResponse.ok) return detail
-
-      const englishDetail = await englishResponse.json()
-
-      return {
-        ...detail,
-        image: englishDetail.image || detail.image,
-      }
-    })
-  )
-
-  return detailedCards
-}
+    return detailedCards
+  }
 
   async function searchCard() {
     if (!name.trim()) {
@@ -294,33 +418,29 @@ return {
 
     try {
       const catalogCards = await searchCardCatalog()
+      const pokemonApiCards = await searchPokemonTcgApi()
+      const tcgdexCards = await searchTcgdexFallback()
 
-const pokemonApiCards = await searchPokemonTcgApi()
+      const mergedCards = [
+        ...catalogCards,
+        ...pokemonApiCards,
+        ...tcgdexCards,
+      ]
 
-const tcgdexCards = await searchTcgdexFallback()
-
-const mergedCards = [
-  ...catalogCards,
-  ...pokemonApiCards,
-  ...tcgdexCards,
-]
-
-const uniqueCards = mergedCards.filter(
-  (card, index, self) =>
-    index ===
-    self.findIndex(
-      (c) =>
-        (c.number || c.localId) ===
-          (card.number || card.localId) &&
-        c.name === card.name &&
-        c.set?.name === card.set?.name
-    )
-)
-
-let cards: ApiCard[] = uniqueCards
+      let cards: ApiCard[] = mergedCards.filter(
+        (card, index, self) =>
+          index ===
+          self.findIndex(
+            (c) =>
+              (c.number || c.localId) ===
+                (card.number || card.localId) &&
+              c.name === card.name &&
+              c.set?.name === card.set?.name
+          )
+      )
 
       if (setFilter.trim()) {
-        cards = cards.filter((card: ApiCard) =>
+        cards = cards.filter((card) =>
           card.set?.name
             ?.toLowerCase()
             .includes(setFilter.toLowerCase())
@@ -333,7 +453,7 @@ let cards: ApiCard[] = uniqueCards
           .replace(/^0+/, '')
           .toLowerCase()
 
-        cards = cards.filter((card: ApiCard) => {
+        cards = cards.filter((card) => {
           const apiNumber = String(card.number || card.localId || '')
             .split('/')[0]
             .replace(/^0+/, '')
@@ -348,7 +468,7 @@ let cards: ApiCard[] = uniqueCards
       }
 
       if (rarityFilter !== 'Todas') {
-        cards = cards.filter((card: ApiCard) =>
+        cards = cards.filter((card) =>
           card.rarity
             ?.toLowerCase()
             .includes(rarityFilter.toLowerCase())
@@ -370,115 +490,145 @@ let cards: ApiCard[] = uniqueCards
     setSearching(false)
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     if (!selectedCard && !manualMode) {
-  setMessage('Selecione uma carta ou use o modo manual.')
-  return
-}
+      setMessage('Selecione uma carta ou use o modo manual.')
+      return
+    }
 
-if (manualMode && !manualName.trim()) {
-  setMessage('Digite o nome da carta manual.')
-  return
-}
+    if (manualMode && !manualName.trim()) {
+      setMessage('Digite o nome da carta manual.')
+      return
+    }
+
+    if (manualMode && !uploadedImageUrl) {
+      setMessage('Envie uma imagem da carta manual.')
+      return
+    }
 
     setLoading(true)
     setMessage('')
 
     const {
-  data: { user },
-} = await supabase.auth.getUser()
+      data: { user },
+    } = await supabase.auth.getUser()
 
-if (!user) {
-  setMessage('Você precisa estar logado para salvar cartas.')
-  setLoading(false)
-  return
-}
+    if (!user) {
+      setMessage('Você precisa estar logado para salvar cartas.')
+      setLoading(false)
+      return
+    }
 
-const cardToSave = {
-  name: manualMode ? manualName : selectedCard!.name,
-  image_url: manualImageUrl || getImageUrl(selectedCard),
+    const cardToSave = {
+      name: manualMode ? manualName : selectedCard!.name,
 
-  set_name: manualMode
-    ? manualSetName || null
-    : selectedCard!.set?.name || null,
+      image_url: uploadedImageUrl || getImageUrl(selectedCard),
 
-  card_number: manualMode
-    ? manualCardNumber || null
-    : selectedCard!.number || selectedCard!.localId || null,
+      set_name: manualMode
+        ? manualSetName || null
+        : selectedCard!.set?.name || null,
 
-  rarity: manualMode
-    ? manualRarity || null
-    : selectedCard!.rarity || null,
+      card_number: manualMode
+        ? manualCardNumber || null
+        : selectedCard!.number || selectedCard!.localId || null,
 
-  illustrator: manualMode
-    ? null
-    : selectedCard!.illustrator || null,
+      rarity: manualMode
+        ? manualRarity || null
+        : selectedCard!.rarity || null,
 
-  language,
-  variant,
-  api_card_id:
-    !manualMode && selectedCard?.source !== 'catalog' && selectedCard?.images
-      ? selectedCard.id
-      : null,
+      illustrator: manualMode
+        ? manualIllustrator || null
+        : getIllustrator(selectedCard),
 
-  tcgdex_id:
-    !manualMode && !selectedCard?.images && selectedCard?.source !== 'catalog'
-      ? selectedCard?.id || null
-      : null,
-}    
+      card_type: manualMode
+        ? manualCardType || null
+        : getCardType(selectedCard),
 
-const { error } = await supabase
-  .from('cards')
-  .insert({
-    name: cardToSave.name,
-    language: cardToSave.language,
-    condition,
-    quantity,
-    variant: cardToSave.variant,
+      hp: manualMode
+        ? manualHp || null
+        : getHp(selectedCard),
 
-    image_url: cardToSave.image_url,
+      stage: manualMode
+        ? manualStage || null
+        : getStage(selectedCard),
 
-    set_name: cardToSave.set_name,
-    card_number: cardToSave.card_number,
-    rarity: cardToSave.rarity,
-    illustrator: cardToSave.illustrator,
+      language,
+      condition,
+      quantity,
+      variant,
 
-    auto_price:
-      manualMode || selectedCard?.source === 'catalog'
-        ? null
-        : getAutoPrice(selectedCard),
+      api_card_id:
+        !manualMode && selectedCard?.source === 'pokemonapi'
+          ? selectedCard.id
+          : null,
 
-    auto_price_brl: manualPriceBrl
-      ? Number(manualPriceBrl)
-      : null,
+      tcgdex_id:
+        !manualMode && selectedCard?.source === 'tcgdex'
+          ? selectedCard.id
+          : null,
+    }
 
-    price_provider: null,
-    price_url: null,
-    price_updated_at: null,
-    user_id: user.id,
+    const { error } = await supabase
+      .from('cards')
+      .insert({
+        name: cardToSave.name,
+        language: cardToSave.language,
+        condition: cardToSave.condition,
+        quantity: cardToSave.quantity,
+        variant: cardToSave.variant,
 
-    binder_id: selectedBinderId || null,
-    binder_page: selectedBinderId ? binderPage : null,
-    binder_slot: selectedBinderId ? binderSlot : null,
+        image_url: cardToSave.image_url,
 
-    api_card_id: cardToSave.api_card_id,
+        set_name: cardToSave.set_name,
+        card_number: cardToSave.card_number,
+        rarity: cardToSave.rarity,
+        illustrator: cardToSave.illustrator,
+        card_type: cardToSave.card_type,
+        hp: cardToSave.hp,
+        stage: cardToSave.stage,
 
-    tcgdex_id: cardToSave.tcgdex_id,
+        auto_price: null,
 
-    tcgdex_local_id:
-      !manualMode && selectedCard?.source !== 'catalog'
-        ? selectedCard?.localId || null
-        : null,
+        manual_price: manualPriceBrl
+          ? Number(manualPriceBrl)
+          : null,
 
-    tcgdex_set_id:
-      !manualMode && selectedCard?.source !== 'catalog'
-        ? selectedCard?.set?.id || null
-        : null,
+        manual_price_currency: 'BRL',
+        manual_price_updated_at: manualPriceBrl
+          ? new Date().toISOString()
+          : null,
 
-    card_language_code: getLanguageCode(language),
-  })
+        auto_price_brl: manualPriceBrl
+          ? Number(manualPriceBrl)
+          : null,
+
+        price_provider: null,
+        price_url: null,
+        price_updated_at: null,
+
+        user_id: user.id,
+
+        binder_id: selectedBinderId || null,
+        binder_page: selectedBinderId ? binderPage : null,
+        binder_slot: selectedBinderId ? binderSlot : null,
+
+        api_card_id: cardToSave.api_card_id,
+        tcgdex_id: cardToSave.tcgdex_id,
+
+        tcgdex_local_id:
+          !manualMode && selectedCard?.source === 'tcgdex'
+            ? selectedCard?.localId || null
+            : null,
+
+        tcgdex_set_id:
+          !manualMode && selectedCard?.source === 'tcgdex'
+            ? selectedCard?.set?.id || null
+            : null,
+
+        card_language_code: getLanguageCode(language),
+      })
 
     if (error) {
       setMessage(`Erro: ${error.message}`)
@@ -487,468 +637,661 @@ const { error } = await supabase
     }
 
     await supabase
-  .from('card_catalog')
-  .upsert(
-    {
-      name: cardToSave.name,
-      image_url: cardToSave.image_url,
-      set_name: cardToSave.set_name,
-      card_number: cardToSave.card_number,
-      rarity: cardToSave.rarity,
-      illustrator: cardToSave.illustrator,
-      language: cardToSave.language,
-      variant: cardToSave.variant,
-      api_card_id: cardToSave.api_card_id,
-      tcgdex_id: cardToSave.tcgdex_id,
-      updated_at: new Date().toISOString(),
-    },
-    {
-      onConflict: 'name,set_name,card_number,language',
-    }
-  )
+      .from('card_catalog')
+      .upsert(
+        {
+          name: cardToSave.name,
+          image_url: cardToSave.image_url,
+          set_name: cardToSave.set_name,
+          card_number: cardToSave.card_number,
+          rarity: cardToSave.rarity,
+          illustrator: cardToSave.illustrator,
+          card_type: cardToSave.card_type,
+          hp: cardToSave.hp,
+          stage: cardToSave.stage,
+          language: cardToSave.language,
+          variant: cardToSave.variant,
+          api_card_id: cardToSave.api_card_id,
+          tcgdex_id: cardToSave.tcgdex_id,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'name,set_name,card_number,language',
+        }
+      )
 
     setMessage('Carta salva com sucesso!')
+
     setName('')
+    setSetFilter('')
+    setNumberFilter('')
+    setRarityFilter('Todas')
     setResults([])
     setSelectedCard(null)
-    setLoading(false)
+
     setManualMode(false)
-setManualName('')
-setManualSetName('')
-setManualCardNumber('')
-setManualRarity('')
-setManualImageUrl('')
+    setManualName('')
+    setManualSetName('')
+    setManualCardNumber('')
+    setManualRarity('')
+    setManualIllustrator('')
+    setManualCardType('')
+    setManualHp('')
+    setManualStage('')
+
+    setUploadedImageUrl('')
+    setQuantity(1)
+    setManualPriceBrl('')
+    setVariant('Normal')
+    setLoading(false)
   }
 
-  return (
+    return (
     <main className="min-h-screen bg-slate-950 p-8 text-white">
       <ProfileMenu />
+
       <div className="mx-auto max-w-6xl">
         <h1 className="text-5xl font-bold">
           Adicionar carta
         </h1>
 
         <form onSubmit={handleSubmit} className="mt-10 space-y-6">
-          <div>
-            <label className="mb-2 block text-sm">
-              Nome da carta
-            </label>
+          <section className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+            <h2 className="text-2xl font-bold">
+              Buscar carta
+            </h2>
 
-            <input
-              type="text"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Ex: Umbreon"
-              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-            />
-          </div>
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <input
+                type="text"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Nome da carta. Ex: Umbreon"
+                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
+              />
 
-          <div>
-            <label className="mb-2 block text-sm">
-              Coleção / Set
-            </label>
+              <input
+                type="text"
+                value={setFilter}
+                onChange={(event) => setSetFilter(event.target.value)}
+                placeholder="Coleção / Set"
+                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
+              />
 
-            <input
-              type="text"
-              value={setFilter}
-              onChange={(event) => setSetFilter(event.target.value)}
-              placeholder="Ex: Evolving Skies"
-              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-            />
-          </div>
+              <input
+                type="text"
+                value={numberFilter}
+                onChange={(event) => setNumberFilter(event.target.value)}
+                placeholder="Número"
+                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
+              />
+            </div>
 
-          <div>
-            <label className="mb-2 block text-sm">
-              Número da carta
-            </label>
+            <div className="mt-4 flex flex-wrap gap-4">
+              <button
+                type="button"
+                onClick={searchCard}
+                disabled={searching}
+                className="rounded-full border border-slate-700 px-6 py-3 font-semibold text-white hover:border-slate-400 disabled:opacity-50"
+              >
+                {searching ? 'Buscando...' : 'Buscar cartas'}
+              </button>
 
-            <input
-              type="text"
-              value={numberFilter}
-              onChange={(event) => setNumberFilter(event.target.value)}
-              placeholder="Ex: 215"
-              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-            />
-          </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setManualMode(true)
+                  setSelectedCard(null)
+                  setResults([])
+                  setMessage('')
+                  setVariant('Normal')
+                }}
+                className="rounded-full bg-yellow-400 px-6 py-3 font-semibold text-slate-950"
+              >
+                + Adicionar manualmente
+              </button>
+            </div>
+          </section>
 
-<div>
-  <label className="mb-2 block text-sm">
-    URL da imagem manual
-  </label>
+          <section className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+            <h2 className="text-2xl font-bold">
+              Dados da sua carta
+            </h2>
 
-  <input
-    type="text"
-    value={manualImageUrl}
-    onChange={(event) => setManualImageUrl(event.target.value)}
-    placeholder="Cole aqui a imagem da carta se a API não encontrar"
-    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-  />
-</div>
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <div>
+                <label className="mb-2 block text-sm text-slate-400">
+                  Idioma
+                </label>
 
-          <div>
-            <label className="mb-2 block text-sm">
-              Raridade
-            </label>
+                <select
+                  value={language}
+                  onChange={(event) => setLanguage(event.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
+                >
+                  <option>Português</option>
+                  <option>Inglês</option>
+                  <option>Japonês</option>
+                  <option>Alemão</option>
+                  <option>Francês</option>
+                  <option>Italiano</option>
+                  <option>Espanhol</option>
+                  <option>Coreano</option>
+                  <option>Chinês Simplificado</option>
+                  <option>Chinês Tradicional</option>
+                  <option>Tailandês</option>
+                  <option>Indonésio</option>
+                </select>
+              </div>
 
-            <select
-              value={rarityFilter}
-              onChange={(event) => setRarityFilter(event.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-            >
-              <option>Todas</option>
-              <option>Common</option>
-              <option>Uncommon</option>
-              <option>Rare</option>
-              <option>Rare Holo</option>
-              <option>Rare Ultra</option>
-              <option>Rare Secret</option>
-              <option>Rare Rainbow</option>
-              <option>Rare Holo V</option>
-              <option>Rare Holo VMAX</option>
-            </select>
-          </div>
+              <div>
+                <label className="mb-2 block text-sm text-slate-400">
+                  Condição
+                </label>
 
-          <div>
-            <label className="mb-2 block text-sm">
-              Variante
-            </label>
+                <select
+                  value={condition}
+                  onChange={(event) => setCondition(event.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
+                >
+                  <option>NM</option>
+                  <option>LP</option>
+                  <option>MP</option>
+                  <option>HP</option>
+                </select>
+              </div>
 
-            <select
-              value={variant}
-              onChange={(event) => setVariant(event.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-            >
-              <option>Todas</option>
-              <option>Normal</option>
-              <option>Reverse Holo</option>
-              <option>Holo</option>
-              <option>Full Art</option>
-              <option>Alt Art</option>
-              <option>Gold</option>
-            </select>
-          </div>
+              <div>
+                <label className="mb-2 block text-sm text-slate-400">
+                  Variante
+                </label>
 
-          <div>
-            <label className="mb-2 block text-sm">
-              Idioma da sua carta física
-            </label>
+                <select
+                  value={variant}
+                  onChange={(event) => setVariant(event.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
+                >
+                  <option>Normal</option>
+                  <option>Reverse Holo</option>
+                  <option>Holo</option>
+                  <option>Full Art</option>
+                  <option>Alt Art</option>
+                  <option>Gold</option>
+                  <option>Rainbow</option>
+                  <option>Promo</option>
+                  <option>Illustration Rare</option>
+                  <option>Special Illustration Rare</option>
+                  <option>Double Rare</option>
+                  <option>Radiant</option>
+                  <option>Amazing Rare</option>
+                  <option>ACE SPEC</option>
+                  <option>V</option>
+                  <option>VMAX</option>
+                  <option>VSTAR</option>
+                  <option>ex</option>
+                </select>
+              </div>
 
-            <select
-              value={language}
-              onChange={(event) => setLanguage(event.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-            >
-              <option>Português</option>
-              <option>Inglês</option>
-              <option>Japonês</option>
-              <option>Alemão</option>
-              <option>Francês</option>
-              <option>Italiano</option>
-              <option>Espanhol</option>
-              <option>Coreano</option>
-              <option>Chinês Simplificado</option>
-              <option>Chinês Tradicional</option>
-              <option>Tailandês</option>
-              <option>Indonésio</option>
-            </select>
-          </div>
+              <div>
+                <label className="mb-2 block text-sm text-slate-400">
+                  Quantidade
+                </label>
 
-          <div>
-            <label className="mb-2 block text-sm">
-              Condição
-            </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(event) => setQuantity(Number(event.target.value))}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
+                />
+              </div>
 
-            <select
-              value={condition}
-              onChange={(event) => setCondition(event.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-            >
-              <option>NM</option>
-              <option>LP</option>
-              <option>MP</option>
-              <option>HP</option>
-            </select>
-          </div>
+              <div>
+                <label className="mb-2 block text-sm text-slate-400">
+                  Valor manual em R$
+                </label>
 
-          <div>
-            <label className="mb-2 block text-sm">
-              Quantidade
-            </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={manualPriceBrl}
+                  onChange={(event) => setManualPriceBrl(event.target.value)}
+                  placeholder="Ex: 149.90"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
+                />
+              </div>
+            </div>
+          </section>
 
-            <input
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(event) => setQuantity(Number(event.target.value))}
-              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-            />
-          </div>
+                    <section className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+            <h2 className="text-2xl font-bold">
+              Imagem da carta
+            </h2>
 
-          <div>   
-            <label className="mb-2 block text-sm">
-              Valor manual (R$)
-            </label>
-
-            <input
-              type="number"
-              step="0.01"
-              value={manualPriceBrl}
-              onChange={(event) =>
-                setManualPriceBrl(event.target.value)
-              }
-              placeholder="Ex: 149.90"
-              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-            />
-          </div>
-
-          <div>
-  <label className="mb-2 block text-sm">
-    Binder
-  </label>
-
-  <select
-    value={selectedBinderId}
-    onChange={(event) =>
-      setSelectedBinderId(event.target.value)
-    }
-    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-  >
-    <option value="">Sem binder</option>
-
-    {binders.map((binder) => (
-      <option key={binder.id} value={binder.id}>
-        {binder.name}
-      </option>
-    ))}
-  </select>
-</div>
-
-<div>
-  <label className="mb-2 block text-sm">
-    Página do binder
-  </label>
-
-  <input
-    type="number"
-    min="1"
-    value={binderPage}
-    onChange={(event) =>
-      setBinderPage(Number(event.target.value))
-    }
-    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-  />
-</div>
-
-<div>
-  <label className="mb-2 block text-sm">
-    Slot do binder
-  </label>
-
-  <input
-    type="number"
-    min="1"
-    value={binderSlot}
-    onChange={(event) =>
-      setBinderSlot(Number(event.target.value))
-    }
-    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-  />
-</div>
-
-{manualMode && (
-  <div className="rounded-3xl border border-yellow-400 bg-yellow-400/10 p-5">
-    <h2 className="mb-4 text-2xl font-bold text-yellow-300">
-      Adicionar carta manualmente
-    </h2>
-
-    <div className="space-y-4">
-      <input
-        value={manualName}
-        onChange={(e) => setManualName(e.target.value)}
-        placeholder="Nome da carta"
-        className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-      />
-
-      <input
-        value={manualSetName}
-        onChange={(e) => setManualSetName(e.target.value)}
-        placeholder="Coleção / Set"
-        className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-      />
-
-      <input
-        value={manualCardNumber}
-        onChange={(e) => setManualCardNumber(e.target.value)}
-        placeholder="Número da carta"
-        className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-      />
-
-      <input
-        value={manualRarity}
-        onChange={(e) => setManualRarity(e.target.value)}
-        placeholder="Raridade"
-        className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
-      />
-    </div>
-  </div>
-)}
-
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={searchCard}
-              disabled={searching}
-              className="rounded-full border border-slate-700 px-6 py-3 font-semibold text-white hover:border-slate-400"
-            >
-              {searching ? 'Buscando...' : 'Buscar cartas'}
-            </button>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-full bg-yellow-400 px-6 py-3 font-semibold text-slate-950"
-            >
-              {loading ? 'Salvando...' : 'Salvar carta'}
-            </button>
-
-            <Link
-              href="/colecao"
-              className="rounded-full border border-slate-700 px-6 py-3 font-semibold text-white hover:border-slate-400"
-            >
-              Ver coleção
-            </Link>
-          </div>
-
-          {message && (
-            <p className="text-slate-300">
-              {message}
+            <p className="mt-2 text-sm text-slate-400">
+              Para carta manual, envie obrigatoriamente uma imagem. Para carta buscada, a imagem oficial será usada, mas você pode enviar uma imagem própria para substituir.
             </p>
+
+            <input
+              type="file"
+              accept="image/*"
+              disabled={uploadingImage}
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+
+                if (file) {
+                  uploadCardImage(file)
+                }
+              }}
+              className="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
+            />
+
+            {uploadingImage && (
+              <p className="mt-2 text-sm text-yellow-300">
+                Enviando imagem...
+              </p>
+            )}
+
+            {uploadedImageUrl && (
+              <div className="mt-4">
+                <img
+                  src={uploadedImageUrl}
+                  alt="Imagem enviada"
+                  className="w-40 rounded-xl"
+                />
+
+                <p className="mt-2 text-xs text-green-400">
+                  ✓ Imagem enviada e pronta para salvar
+                </p>
+              </div>
+            )}
+          </section>
+
+          {manualMode && (
+            <section className="rounded-3xl border border-yellow-400 bg-yellow-400/10 p-6">
+              <h2 className="text-2xl font-bold text-yellow-300">
+                Adicionar carta manualmente
+              </h2>
+
+              <p className="mt-2 text-sm text-slate-300">
+                Preencha todos os dados da carta. Esses dados também alimentam o banco do PokéBinder.
+              </p>
+
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm text-slate-400">
+                    Nome
+                  </label>
+
+                  <input
+                    value={manualName}
+                    onChange={(event) => setManualName(event.target.value)}
+                    placeholder="Ex: Squirtle"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-slate-400">
+                    Coleção / Set
+                  </label>
+
+                  <input
+                    value={manualSetName}
+                    onChange={(event) => setManualSetName(event.target.value)}
+                    placeholder="Ex: Pokémon 151"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-slate-400">
+                    Número
+                  </label>
+
+                  <input
+                    value={manualCardNumber}
+                    onChange={(event) =>
+                      setManualCardNumber(event.target.value)
+                    }
+                    placeholder="Ex: 007/165"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-slate-400">
+                    Raridade
+                  </label>
+
+                  <input
+                    value={manualRarity}
+                    onChange={(event) => setManualRarity(event.target.value)}
+                    placeholder="Ex: Common, Rare, Illustration Rare..."
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-slate-400">
+                    Ilustrador
+                  </label>
+
+                  <input
+                    value={manualIllustrator}
+                    onChange={(event) =>
+                      setManualIllustrator(event.target.value)
+                    }
+                    placeholder="Ex: Mitsuhiro Arita"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-slate-400">
+                    Tipo
+                  </label>
+
+                  <input
+                    value={manualCardType}
+                    onChange={(event) =>
+                      setManualCardType(event.target.value)
+                    }
+                    placeholder="Ex: Pokémon Água, Treinador, Energia..."
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-slate-400">
+                    HP
+                  </label>
+
+                  <input
+                    value={manualHp}
+                    onChange={(event) => setManualHp(event.target.value)}
+                    placeholder="Ex: 70"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-slate-400">
+                    Estágio
+                  </label>
+
+                  <input
+                    value={manualStage}
+                    onChange={(event) => setManualStage(event.target.value)}
+                    placeholder="Ex: Básico, Stage 1, Treinador..."
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                  />
+                </div>
+              </div>
+            </section>
           )}
 
-          <button
-  type="button"
-  onClick={() => {
-    setManualMode(true)
-    setSelectedCard(null)
-  }}
-  className="rounded-full bg-yellow-400 px-6 py-3 font-semibold text-slate-950"
->
-  + Adicionar manualmente
-</button>
+          <section className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+            <h2 className="text-2xl font-bold">
+              Binder
+            </h2>
 
-          {results.length > 0 && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {results.map((card) => (
-                <button
-                  key={`${card.id}-${card.set?.id || card.set?.name || 'set'}-${card.number || card.localId || 'num'}`}
-                  type="button"
-                  onClick={() => {
-                    setSelectedCard(card)
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <div>
+                <label className="mb-2 block text-sm text-slate-400">
+                  Binder
+                </label>
 
-                    if (card?.rarity) {
-                      const rarity = card.rarity.toLowerCase()
-
-                      if (rarity.includes('hyper')) {
-                        setVariant('Gold')
-                      } else if (rarity.includes('secret')) {
-                        setVariant('Alt Art')
-                      } else if (rarity.includes('ultra')) {
-                        setVariant('Full Art')
-                      } else if (rarity.includes('holo')) {
-                        setVariant('Holo')
-                      } else {
-                        setVariant('Normal')
-                      }
-                    }
-                  }}
-                  className={`rounded-2xl border p-4 text-left transition ${
-                    selectedCard?.id === card.id
-                      ? 'border-yellow-400 bg-yellow-400/10'
-                      : 'border-slate-800 bg-slate-900 hover:border-slate-500'
-                  }`}
+                <select
+                  value={selectedBinderId}
+                  onChange={(event) =>
+                    setSelectedBinderId(event.target.value)
+                  }
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
                 >
-                  {getImageUrl(card) && (
-                    <img
-                      src={getImageUrl(card) || ''}
-                      alt={card.name}
-                      className="mb-4 w-32 rounded-xl"
-                    />
-                  )}
+                  <option value="">Sem binder</option>
 
-                  <h2 className="text-xl font-bold">
-                    {card.name}
-                  </h2>
+                  {binders.map((binder) => (
+                    <option key={binder.id} value={binder.id}>
+                      {binder.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                  {card.source === 'catalog' && (
-                    <p className="mt-1 inline-block rounded-full bg-green-500 px-2 py-1 text-xs font-semibold text-white">
-                      Banco PokéBinder
-                    </p>
-                  )}
+              <div>
+                <label className="mb-2 block text-sm text-slate-400">
+                  Página
+                </label>
 
-                  <p className="mt-2 text-sm text-slate-400">
-                    {card.set?.name}
-                  </p>
+                <input
+                  type="number"
+                  min="1"
+                  value={binderPage}
+                  onChange={(event) =>
+                    setBinderPage(Number(event.target.value))
+                  }
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
+                />
+              </div>
 
-                  <p className="text-sm text-slate-400">
-                    Nº {card.number || card.localId}
-                  </p>
+              <div>
+                <label className="mb-2 block text-sm text-slate-400">
+                  Slot
+                </label>
 
-                  <p className="text-sm text-slate-400">
-                    {card.rarity}
-                  </p>
-
-                  <p className="mt-2 text-sm text-slate-300">
-                    {language === 'Inglês' && getAutoPrice(card)
-                      ? `US$ ${getAutoPrice(card)}`
-                      : 'Sem preço automático para este idioma'}
-                  </p>
-                </button>
-              ))}
+                <input
+                  type="number"
+                  min="1"
+                  value={binderSlot}
+                  onChange={(event) =>
+                    setBinderSlot(Number(event.target.value))
+                  }
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
+                />
+              </div>
             </div>
+          </section>
+
+                    {results.length > 0 && (
+            <section className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+              <h2 className="text-2xl font-bold">
+                Resultados da busca
+              </h2>
+
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {results.map((card) => (
+                  <button
+                    key={`${card.id}-${card.number || card.localId}`}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCard(card)
+
+                      setVariant(detectVariant(card))
+
+                      if (!manualPriceBrl && getAutoPrice(card)) {
+                        setManualPriceBrl(
+                          String(getAutoPrice(card))
+                        )
+                      }
+                    }}
+                    className={`overflow-hidden rounded-2xl border transition ${
+                      selectedCard?.id === card.id
+                        ? 'border-yellow-400 bg-yellow-400/10'
+                        : 'border-slate-800 bg-slate-900 hover:border-slate-500'
+                    }`}
+                  >
+                    {getImageUrl(card) && (
+                      <img
+                        src={getImageUrl(card)!}
+                        alt={card.name}
+                        className="h-72 w-full object-cover"
+                      />
+                    )}
+
+                    <div className="p-4 text-left">
+                      <h3 className="font-bold">
+                        {card.name}
+                      </h3>
+
+                      <p className="mt-2 text-sm text-slate-400">
+                        {card.set?.name}
+                      </p>
+
+                      <p className="text-sm text-slate-400">
+                        Nº {card.number || card.localId}
+                      </p>
+
+                      <p className="text-sm text-slate-400">
+                        {card.rarity}
+                      </p>
+
+                      {getIllustrator(card) && (
+                        <p className="mt-2 text-xs text-slate-500">
+                          🎨 {getIllustrator(card)}
+                        </p>
+                      )}
+
+                      {getCardType(card) && (
+                        <p className="text-xs text-slate-500">
+                          Tipo: {getCardType(card)}
+                        </p>
+                      )}
+
+                      {getHp(card) && (
+                        <p className="text-xs text-slate-500">
+                          HP {getHp(card)}
+                        </p>
+                      )}
+
+                      {getStage(card) && (
+                        <p className="text-xs text-slate-500">
+                          {getStage(card)}
+                        </p>
+                      )}
+
+                      {language === 'Inglês' &&
+                        getAutoPrice(card) && (
+                          <p className="mt-3 font-semibold text-green-400">
+                            US$ {getAutoPrice(card)}
+                          </p>
+                        )}
+
+                      {card.source === 'catalog' && (
+                        <span className="mt-3 inline-block rounded-full bg-green-500 px-2 py-1 text-xs font-bold">
+                          Banco PokéBinder
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </section>
           )}
 
           {selectedCard && (
-            <div className="rounded-3xl border border-yellow-400 bg-yellow-400/10 p-5">
+            <section className="rounded-3xl border border-yellow-400 bg-yellow-400/10 p-6">
               <h2 className="text-2xl font-bold text-yellow-300">
                 Carta selecionada
               </h2>
 
-              <div className="mt-4 flex gap-5">
+              <div className="mt-6 flex flex-col gap-8 lg:flex-row">
+
                 {getImageUrl(selectedCard) && (
                   <img
-                    src={getImageUrl(selectedCard) || ''}
+                    src={getImageUrl(selectedCard)!}
                     alt={selectedCard.name}
-                    className="w-40 rounded-xl"
+                    className="w-72 rounded-2xl"
                   />
                 )}
 
-                <div>
-                  <h3 className="text-3xl font-bold">
+                <div className="flex-1 space-y-3">
+
+                  <h3 className="text-4xl font-bold">
                     {selectedCard.name}
                   </h3>
 
-                  <p className="mt-3 text-slate-300">
-                    Set: {selectedCard.set?.name}
+                  <p>
+                    <strong>Set:</strong>{' '}
+                    {selectedCard.set?.name}
                   </p>
 
-                  <p className="text-slate-300">
-                    Número: {selectedCard.number || selectedCard.localId}
+                  <p>
+                    <strong>Número:</strong>{' '}
+                    {selectedCard.number ||
+                      selectedCard.localId}
                   </p>
 
-                  <p className="text-slate-300">
-                    Raridade: {selectedCard.rarity}
+                  <p>
+                    <strong>Raridade:</strong>{' '}
+                    {selectedCard.rarity}
                   </p>
 
-                  <p className="text-slate-300">
-                    Preço:{' '}
-                    {language === 'Inglês' && getAutoPrice(selectedCard)
-                      ? `US$ ${getAutoPrice(selectedCard)}`
-                      : 'Não disponível para este idioma'}
+                  <p>
+                    <strong>Ilustrador:</strong>{' '}
+                    {getIllustrator(selectedCard) || '-'}
                   </p>
+
+                  <p>
+                    <strong>Tipo:</strong>{' '}
+                    {getCardType(selectedCard) || '-'}
+                  </p>
+
+                  <p>
+                    <strong>HP:</strong>{' '}
+                    {getHp(selectedCard) || '-'}
+                  </p>
+
+                  <p>
+                    <strong>Estágio:</strong>{' '}
+                    {getStage(selectedCard) || '-'}
+                  </p>
+
+                  <p>
+                    <strong>Variante detectada:</strong>{' '}
+                    {detectVariant(selectedCard)}
+                  </p>
+
+                  {language === 'Inglês' &&
+                    getAutoPrice(selectedCard) && (
+                      <p className="text-xl font-bold text-green-400">
+                        US$ {getAutoPrice(selectedCard)}
+                      </p>
+                    )}
+
                 </div>
+
               </div>
-            </div>
+            </section>
           )}
+
+          {message && (
+            <p className="text-lg text-slate-300">
+              {message}
+            </p>
+          )}
+
+          <div className="flex flex-wrap gap-4">
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="rounded-full bg-yellow-400 px-8 py-4 text-lg font-bold text-slate-950"
+            >
+              {loading
+                ? 'Salvando...'
+                : 'Salvar carta'}
+            </button>
+
+            <Link
+              href="/colecao"
+              className="rounded-full border border-slate-700 px-8 py-4 font-semibold"
+            >
+              Ver coleção
+            </Link>
+
+          </div>
+
         </form>
       </div>
     </main>
