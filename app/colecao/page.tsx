@@ -182,7 +182,7 @@ const { data, error } = await supabase
     setEditIllustrator(card.illustrator || '')
     setEditLanguage(card.language || 'Português')
     setEditCondition(card.condition || 'NM')
-    setEditVariant(card.variant || 'Todas')
+    setEditVariant(card.variant || 'Normal')
     setEditQuantity(card.quantity || 1)
     setEditManualPrice(
       card.manual_price?.toString() || ''
@@ -871,11 +871,12 @@ function getDaysSinceManualPriceUpdate(card: Card) {
             >
               <option>Todas</option>
               <option>Normal</option>
-              <option>Reverse Holo</option>
               <option>Holo</option>
-              <option>Full Art</option>
-              <option>Alt Art</option>
-              <option>Gold</option>
+              <option>Reverse Holo</option>
+              <option>Stamped</option>
+              <option>Stamped Promo</option>
+              <option>Cosmos Holo</option>
+              <option>Cracked Ice Holo</option>
             </select>
 
             <select
@@ -1017,7 +1018,7 @@ function getDaysSinceManualPriceUpdate(card: Card) {
                     </span>
 
                     <span className="rounded-full bg-slate-800 px-3 py-1 text-xs">
-                      {card.variant || 'Sem variante'}
+                      {card.variant || 'Normal'}
                     </span>
 
                     <span className="rounded-full bg-slate-800 px-3 py-1 text-xs">
@@ -1146,7 +1147,7 @@ function getDaysSinceManualPriceUpdate(card: Card) {
                 <div className="mt-6 space-y-3 text-lg text-slate-300">
                   <p><strong>Idioma:</strong> {selectedCard.language}</p>
                   <p><strong>Condição:</strong> {selectedCard.condition}</p>
-                  <p><strong>Variante:</strong> {selectedCard.variant}</p>
+                  <p><strong>Acabamento:</strong> {selectedCard.variant || 'Normal'}</p>
                   <p><strong>Raridade:</strong> {selectedCard.rarity || '—'}</p>
                   <p><strong>Ilustrador:</strong> {selectedCard.illustrator || '—'}</p>
                   <p><strong>Número:</strong> {selectedCard.card_number || '—'}</p>
@@ -1315,19 +1316,19 @@ function getDaysSinceManualPriceUpdate(card: Card) {
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm">Variante</label>
+                      <label className="mb-2 block text-sm">Acabamento</label>
                       <select
                         value={editVariant}
                         onChange={(event) => setEditVariant(event.target.value)}
                         className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
                       >
-                        <option>Todas</option>
                         <option>Normal</option>
-                        <option>Reverse Holo</option>
                         <option>Holo</option>
-                        <option>Full Art</option>
-                        <option>Alt Art</option>
-                        <option>Gold</option>
+                        <option>Reverse Holo</option>
+                        <option>Stamped</option>
+                        <option>Stamped Promo</option>
+                        <option>Cosmos Holo</option>
+                        <option>Cracked Ice Holo</option>
                       </select>
                     </div>
 
