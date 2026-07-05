@@ -11,9 +11,12 @@ type Binder = {
 }
 
 type ApiCard = {
+
   id: string
   name: string
   source?: 'catalog' | 'pokemonapi' | 'tcgdex'
+
+  finish?: string | null
 
   number?: string
   localId?: string
@@ -66,7 +69,7 @@ export default function AdicionarCartaPage() {
   const [condition, setCondition] = useState('NM')
   const [quantity, setQuantity] = useState(1)
   const [manualPriceBrl, setManualPriceBrl] = useState('')
-  const [variant, setVariant] = useState('Normal')
+  const [finish, setFinish] = useState('Normal')
 
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
@@ -557,7 +560,7 @@ export default function AdicionarCartaPage() {
       language,
       condition,
       quantity,
-      variant,
+      finish,
 
       api_card_id:
         !manualMode && selectedCard?.source === 'pokemonapi'
@@ -577,7 +580,7 @@ export default function AdicionarCartaPage() {
         language: cardToSave.language,
         condition: cardToSave.condition,
         quantity: cardToSave.quantity,
-        variant: cardToSave.variant,
+        finish: cardToSave.finish,
 
         image_url: cardToSave.image_url,
 
@@ -650,7 +653,7 @@ export default function AdicionarCartaPage() {
           hp: cardToSave.hp,
           stage: cardToSave.stage,
           language: cardToSave.language,
-          variant: cardToSave.variant,
+          variant: cardToSave.finish,
           api_card_id: cardToSave.api_card_id,
           tcgdex_id: cardToSave.tcgdex_id,
           updated_at: new Date().toISOString(),
@@ -682,8 +685,13 @@ export default function AdicionarCartaPage() {
     setUploadedImageUrl('')
     setQuantity(1)
     setManualPriceBrl('')
-    setVariant('Normal')
+    setFinish('Normal')
     setLoading(false)
+  }
+
+  function detectFinish(card: ApiCard): string {
+    // Implement the logic to detect the finish of the card
+    return card.finish || 'Normal';
   }
 
     return (
@@ -744,7 +752,7 @@ export default function AdicionarCartaPage() {
                   setSelectedCard(null)
                   setResults([])
                   setMessage('')
-                  setVariant('Normal')
+                  setFinish('Normal')
                 }}
                 className="rounded-full bg-yellow-400 px-6 py-3 font-semibold text-slate-950"
               >
@@ -803,32 +811,22 @@ export default function AdicionarCartaPage() {
 
               <div>
                 <label className="mb-2 block text-sm text-slate-400">
-                  Variante
-                </label>
+                  Acabamento
+
+              </label>
 
                 <select
-                  value={variant}
-                  onChange={(event) => setVariant(event.target.value)}
+                  value={finish}
+                  onChange={(event) => setFinish(event.target.value)}
                   className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
                 >
                   <option>Normal</option>
-                  <option>Reverse Holo</option>
                   <option>Holo</option>
-                  <option>Full Art</option>
-                  <option>Alt Art</option>
-                  <option>Gold</option>
-                  <option>Rainbow</option>
-                  <option>Promo</option>
-                  <option>Illustration Rare</option>
-                  <option>Special Illustration Rare</option>
-                  <option>Double Rare</option>
-                  <option>Radiant</option>
-                  <option>Amazing Rare</option>
-                  <option>ACE SPEC</option>
-                  <option>V</option>
-                  <option>VMAX</option>
-                  <option>VSTAR</option>
-                  <option>ex</option>
+                  <option>Reverse Holo</option>
+                  <option>Stamped</option>
+                  <option>Stamped Promo</option>
+                  <option>Cosmos Holo</option>
+                  <option>Cracked Ice Holo</option>
                 </select>
               </div>
 
@@ -1107,7 +1105,7 @@ export default function AdicionarCartaPage() {
                     onClick={() => {
                       setSelectedCard(card)
 
-                      setVariant(detectVariant(card))
+                      setFinish(detectFinish(card))
 
                       if (!manualPriceBrl && getAutoPrice(card)) {
                         setManualPriceBrl(
@@ -1248,8 +1246,8 @@ export default function AdicionarCartaPage() {
                   </p>
 
                   <p>
-                    <strong>Variante detectada:</strong>{' '}
-                    {detectVariant(selectedCard)}
+                    <strong>Acabamento detectado:</strong>{' '}
+                    {detectFinish(selectedCard)}
                   </p>
 
                   {language === 'Inglês' &&
